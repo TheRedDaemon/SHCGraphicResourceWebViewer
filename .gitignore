@@ -27,5 +27,8 @@ dist-ssr
 .zig-cache/
 zig-out/
 
+# Zigar build directory
+zigar-build/
+
 # Always keep .gitkeep
 !.gitkeep
