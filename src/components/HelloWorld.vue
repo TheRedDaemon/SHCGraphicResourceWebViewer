@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { hello } from "../../zig-src/hello.zig";
+import { hello } from "zig-src/hello.zig";
 
 defineProps<{ msg: string }>();
 

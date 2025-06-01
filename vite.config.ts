@@ -13,4 +13,10 @@ export default defineConfig({
       buildDir: path.join(__dirname, ZIGAR_BUILD),
     }),
   ],
+  resolve: {
+    alias: {
+      src: "/src",
+      "zig-src": "/zig-src",
+    },
+  },
 });
