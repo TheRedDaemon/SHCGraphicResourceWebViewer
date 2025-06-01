@@ -1,32 +1,75 @@
 <script setup lang="ts">
 import HelloWorld from "src/components/HelloWorld.vue";
+import TgxFile from "src/components/tools/TgxFile.vue";
+import { ref, computed, type Component } from "vue";
+
+const routes: Record<string, [string, Component | null]> = {
+  "#/hello": ["Hello", HelloWorld],
+  "#/tgx": ["Tgx File", TgxFile],
+  "#/about": ["About", null],
+};
+const currentPath = ref(window.location.hash);
+
+window.addEventListener("hashchange", () => {
+  currentPath.value = window.location.hash;
+});
+
+const currentView = computed(() => {
+  return (routes[currentPath.value] ?? [null, null])[1];
+});
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
+  <h1>SHC Graphic Resource Web Viewer</h1>
+  <nav>
+    <a
+      v-for="(value, key) in routes"
+      :key="key"
+      :href="key"
+      :active="key === currentPath ? '' : null"
+    >
+      {{ value[0] }}
     </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+  </nav>
+  <main>
+    <component :is="currentView" />
+  </main>
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+nav {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  background-color: chocolate;
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+main {
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+a {
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  padding: 0.5rem;
+  color: #242424;
+  font-weight: bolder;
+  text-decoration: none;
+}
+
+a:hover {
+  background-color: coral;
+}
+
+a[active] {
+  border-color: #242424;
 }
 </style>
