@@ -1,10 +1,16 @@
 :root {
+  --color-text: rgba(255, 255, 255, 0.85);
+  --color-primary: #242424;
+  --color-primary-highlight: #80808010;
+  --color-secondary: chocolate;
+  --color-secondary-highlight: coral;
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--color-text);
+  background-color: var(--color-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

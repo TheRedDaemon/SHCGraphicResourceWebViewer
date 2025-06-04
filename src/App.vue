@@ -42,7 +42,7 @@ nav {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  background-color: chocolate;
+  background-color: var(--color-secondary);
 }
 
 main {
@@ -60,16 +60,16 @@ a {
   border-left: 0.5rem solid transparent;
   border-right: 0.5rem solid transparent;
   padding: 0.5rem;
-  color: #242424;
+  color: var(--color-primary);
   font-weight: bolder;
   text-decoration: none;
 }
 
 a:hover {
-  background-color: coral;
+  background-color: var(--color-secondary-highlight);
 }
 
 a[active] {
-  border-color: #242424;
+  border-color: var(--color-primary);
 }
 </style>
