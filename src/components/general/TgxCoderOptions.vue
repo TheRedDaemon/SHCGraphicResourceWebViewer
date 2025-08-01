@@ -43,7 +43,7 @@ watch(
     </div>
     <div>
       <label for="padding-alignment">Padding Alignment</label>
-      <!-- TODO: check if this ranges fits -->
+      <!-- TODO: check if this ranges fit -->
       <input
         v-model="paddingAlignment"
         name="padding-alignment"

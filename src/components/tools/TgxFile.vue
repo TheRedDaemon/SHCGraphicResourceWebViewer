@@ -1,6 +1,29 @@
 <script setup lang="ts">
 import FixedView from "src/components/general/CanvasView.vue";
 import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
+
+import TgxImageData from "src/objects/image-data/TgxImageData.ts";
+
+const image = new Image();
+image.onload = async () => {
+  const canvas = new OffscreenCanvas(image.width, image.height);
+  const bitmap = await createImageBitmap(image);
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("No context");
+  }
+  context.drawImage(bitmap, 0, 0);
+  const imageData = context.getImageData(0, 0, image.width, image.height);
+
+  console.log(imageData);
+
+  const tgxImageData = TgxImageData.fromImage(imageData);
+
+  console.log(tgxImageData);
+};
+image.crossOrigin = "anonymous";
+image.src = "https://de.wikipedia.org/static/images/icons/wikipedia.png";
 </script>
 
 <template>
