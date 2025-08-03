@@ -21,6 +21,7 @@ function convertRgba8888ToArgb1555(input: Uint8ClampedArray): {
 export default {
   Options,
   current_options,
+  generateArgb1555ColorPalette,
   reduceColorDepthOfRgba8888ToArgb1555,
   convertRgba8888ToArgb1555,
   convertArgb1555ToRgba8888,

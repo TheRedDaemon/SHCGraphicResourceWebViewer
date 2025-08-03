@@ -20,7 +20,6 @@ pub fn reduceColorDepthOfRgba8888ToArgb1555(input: []u8) !void {
         rgba.b = rgba.b >> 3;
         rgba.a = if (rgba.a > current_options.alpha_threshold) 1 else 0;
 
-        // source: https://stackoverflow.com/a/71109890
         rgba.r = (rgba.r << 3) | (rgba.r >> 2);
         rgba.g = (rgba.g << 3) | (rgba.g >> 2);
         rgba.b = (rgba.b << 3) | (rgba.b >> 2);
@@ -41,11 +40,12 @@ pub fn convertRgba8888ToArgb1555(allocator: std.mem.Allocator, input: []const u8
         argb.b = @truncate(rgba.b >> 3);
         argb.a = if (current_options.alpha_threshold > rgba.a) 1 else 0;
     }
-    return std.mem.bytesAsSlice(u16, output);
+    return std.mem.bytesAsSlice(u16, std.mem.sliceAsBytes(output));
 }
 
+// source: https://stackoverflow.com/a/71109890
 pub fn convertArgb1555ToRgba8888(allocator: std.mem.Allocator, input: []const u16) ![]const u8 {
-    const argb_image = std.mem.bytesAsSlice(types.Argb1555, input);
+    const argb_image = std.mem.bytesAsSlice(types.Argb1555, std.mem.sliceAsBytes(input));
 
     const output = try allocator.alloc(types.Rgba8888, argb_image.len);
     errdefer allocator.free(output);
@@ -56,5 +56,5 @@ pub fn convertArgb1555ToRgba8888(allocator: std.mem.Allocator, input: []const u1
         rgba.b = (@as(u8, argb.b) << 3) | (@as(u8, argb.b) >> 2);
         rgba.a = if (argb.a == 1) 255 else 0;
     }
-    return std.mem.bytesAsSlice(u8, output);
+    return std.mem.sliceAsBytes(output);
 }

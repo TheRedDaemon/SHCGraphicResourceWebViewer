@@ -2,6 +2,7 @@
 import FixedView from "src/components/general/CanvasView.vue";
 import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
 import { createImageDataFromFile } from "src/functions/file-import";
+import { quantizeImageTo16Colors } from "src/functions/quantization";
 import SimpleImageData from "src/objects/image-data/SimpleImageData";
 import { useTemplateRef } from "vue";
 
@@ -12,7 +13,9 @@ async function uploadFile(event: Event) {
   const file = target.files?.[0];
   if (file) {
     const imageData = await createImageDataFromFile(file);
-    const simpleImageData = SimpleImageData.fromImage(imageData);
+    const simpleImageData = SimpleImageData.fromImage(
+      quantizeImageTo16Colors(imageData),
+    );
     const canvas = imageCanvas.value!;
     canvas.width = simpleImageData.width;
     canvas.height = simpleImageData.height;

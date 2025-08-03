@@ -43,6 +43,7 @@ export default class SimpleImageData implements SHCImageData {
       image.width,
       image.height,
     );
+    // ensure image is reduced to 16bit colors
     color_depth_converter.reduceColorDepthOfRgba8888ToArgb1555(imageData.data);
     return new SimpleImageData(imageData);
   }
