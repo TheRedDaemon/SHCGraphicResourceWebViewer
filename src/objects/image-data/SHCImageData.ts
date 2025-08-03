@@ -1,5 +1,5 @@
 export default interface SHCImageData {
-  width(): number;
-  height(): number;
-  data(): Uint16Array;
+  get width(): number;
+  get height(): number;
+  drawOnContext(context: CanvasRenderingContext2D, x: number, y: number): void;
 }

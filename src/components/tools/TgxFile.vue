@@ -1,40 +1,41 @@
 <script setup lang="ts">
 import FixedView from "src/components/general/CanvasView.vue";
 import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
+import { createImageDataFromFile } from "src/functions/file-import";
+import SimpleImageData from "src/objects/image-data/SimpleImageData";
+import { useTemplateRef } from "vue";
 
-import TgxImageData from "src/objects/image-data/TgxImageData.ts";
+const imageCanvas = useTemplateRef("image-canvas");
 
-const image = new Image();
-image.onload = async () => {
-  const canvas = new OffscreenCanvas(image.width, image.height);
-  const bitmap = await createImageBitmap(image);
+async function uploadFile(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const imageData = await createImageDataFromFile(file);
+    const simpleImageData = SimpleImageData.fromImage(imageData);
+    const canvas = imageCanvas.value!;
+    canvas.width = simpleImageData.width;
+    canvas.height = simpleImageData.height;
 
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("No context");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Failed to get 2D context");
+    }
+    simpleImageData.drawOnContext(context, 0, 0);
   }
-  context.drawImage(bitmap, 0, 0);
-  const imageData = context.getImageData(0, 0, image.width, image.height);
-
-  console.log(imageData);
-
-  const tgxImageData = TgxImageData.fromImage(imageData);
-
-  console.log(tgxImageData);
-};
-image.crossOrigin = "anonymous";
-image.src = "https://de.wikipedia.org/static/images/icons/wikipedia.png";
+}
 </script>
 
 <template>
   <div class="tgx-file">
     <div class="menu">
+      <input type="file" accept="image/*,.tgx" @change="uploadFile" />
       <button>Export</button>
       <TgxCoderOptions />
     </div>
     <div class="canvas">
       <FixedView>
-        <div class="big-canvas"></div>
+        <canvas ref="image-canvas"></canvas>
       </FixedView>
     </div>
     <div class="meta"></div>
@@ -42,12 +43,6 @@ image.src = "https://de.wikipedia.org/static/images/icons/wikipedia.png";
 </template>
 
 <style scoped>
-.big-canvas {
-  height: 500px;
-  width: 500px;
-  background: #2a7b9b;
-}
-
 .tgx-file {
   display: flex;
   flex-direction: row;

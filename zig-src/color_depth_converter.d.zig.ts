@@ -6,9 +6,22 @@ export class Options {
 
 declare let current_options: Options;
 
-function convert(input: Uint8ClampedArray): {
+function reduceColorDepthOfRgba8888ToArgb1555(input: Uint8ClampedArray): void;
+
+function convertArgb1555ToRgba8888(input: Uint16Array): {
+  [number]: number;
+  typedArray: Uint8ClampedArray;
+};
+
+function convertRgba8888ToArgb1555(input: Uint8ClampedArray): {
   [number]: number;
   typedArray: Uint16Array;
 };
 
-export default { Options, current_options, convert };
+export default {
+  Options,
+  current_options,
+  reduceColorDepthOfRgba8888ToArgb1555,
+  convertRgba8888ToArgb1555,
+  convertArgb1555ToRgba8888,
+};

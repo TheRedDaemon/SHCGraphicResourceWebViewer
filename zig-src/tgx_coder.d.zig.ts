@@ -1,4 +1,4 @@
-export class Options {
+class Options {
   pixel_repeat_threshold: number;
   padding_alignment: number;
   private constructor(
