@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import tgx_coder from "zig-src/tgx_coder.zig";
+import TgxCoderOptions from "src/objects/options/TgxCoderOptions";
 import { ref, watch } from "vue";
 
-const pixelRepeatThreshold = ref(
-  tgx_coder.current_options.pixel_repeat_threshold,
-);
-const paddingAlignment = ref(tgx_coder.current_options.padding_alignment);
+const model = defineModel<TgxCoderOptions>({ required: true });
+
+const pixelRepeatThreshold = ref(model.value.pixel_repeat_threshold);
+const paddingAlignment = ref(model.value.padding_alignment);
 
 watch(
   pixelRepeatThreshold,
-  (newThreshold) =>
-    (tgx_coder.current_options.pixel_repeat_threshold = newThreshold),
+  (newThreshold) => (model.value.pixel_repeat_threshold = newThreshold),
 );
 watch(
   paddingAlignment,
-  (newAlignment) =>
-    (tgx_coder.current_options.padding_alignment = newAlignment),
+  (newAlignment) => (model.value.padding_alignment = newAlignment),
 );
 </script>
 
@@ -28,14 +26,13 @@ watch(
         v-model="pixelRepeatThreshold"
         name="pixel-repeat-threshold"
         type="number"
-        min="0"
-        max="255"
+        min="{{TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_MIN}}"
+        max="{{TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_MAX}}"
         step="1"
       />
       <button
         @click="
-          pixelRepeatThreshold =
-            tgx_coder.Options.default.pixel_repeat_threshold
+          pixelRepeatThreshold = TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_DEFAULT
         "
       >
         Reset
@@ -48,12 +45,12 @@ watch(
         v-model="paddingAlignment"
         name="padding-alignment"
         type="number"
-        min="1"
-        max="255"
+        min="{{TgxCoderOptions.PADDING_ALIGNMENT_MIN}}"
+        max="{{TgxCoderOptions.PADDING_ALIGNMENT_MAX}}"
         step="1"
       />
       <button
-        @click="paddingAlignment = tgx_coder.Options.default.padding_alignment"
+        @click="paddingAlignment = TgxCoderOptions.PADDING_ALIGNMENT_DEFAULT"
       >
         Reset
       </button>

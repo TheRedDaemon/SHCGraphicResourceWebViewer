@@ -1,23 +1,23 @@
 const std = @import("std");
+const zigar = @import("zigar");
 const types = @import("types.zig");
 
-pub const Options = struct {
+pub fn convertTgxToArgb(
+    allocator: std.mem.Allocator,
+    promise: zigar.function.Promise([]const u16),
+    width: u32,
+    height: u32,
+    input: []const u8,
     pixel_repeat_threshold: u8,
     padding_alignment: u8,
-
-    pub const default = Options{
-        .pixel_repeat_threshold = 3,
-        .padding_alignment = 4,
-    };
-};
-
-pub var current_options = Options.default;
-
-pub fn convertTgxToArgb(allocator: std.mem.Allocator, width: u32, height: u32, input: []const u8) ![]const u16 {
+) !void {
     _ = allocator;
+    _ = promise;
     _ = width;
     _ = height;
     _ = input;
+    _ = pixel_repeat_threshold;
+    _ = padding_alignment;
 
     return error.NotImplemented;
 }

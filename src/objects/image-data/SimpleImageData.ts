@@ -1,7 +1,11 @@
 import type SHCImageData from "src/objects/image-data/SHCImageData";
-
-import color_depth_converter from "zig-src/color_depth_converter.zig";
-import tgx_coder from "../../../zig-src/tgx_coder.zig";
+import {
+  convertArgb1555ToRgba8888,
+  reduceColorDepthOfRgba8888ToArgb1555,
+} from "zig-src/color_depth_converter.zig";
+import { convertTgxToArgb } from "zig-src/tgx_coder.zig";
+import TgxCoderOptions from "src/objects/options/TgxCoderOptions";
+import ColorDepthConverterOptions from "src/objects/options/ColorDepthConverterOptions";
 
 export default class SimpleImageData implements SHCImageData {
   #imageData: ImageData;
@@ -22,29 +26,40 @@ export default class SimpleImageData implements SHCImageData {
     return this.#imageData.height;
   }
 
-  static fromTgx(
+  static async fromTgx(
     width: number,
     height: number,
     tgxData: Uint8ClampedArray,
-  ): SimpleImageData {
-    const argb1555Data = tgx_coder.convertTgxToArgb(
-      width,
-      height,
-      tgxData,
+    options: TgxCoderOptions,
+  ): Promise<SimpleImageData> {
+    const argb1555Data = (
+      await convertTgxToArgb(
+        width,
+        height,
+        tgxData,
+        options.pixel_repeat_threshold,
+        options.padding_alignment,
+      )
     ).typedArray;
-    const rgba8888Data =
-      color_depth_converter.convertArgb1555ToRgba8888(argb1555Data).typedArray;
+    const rgba8888Data = (await convertArgb1555ToRgba8888(argb1555Data))
+      .typedArray;
     return new SimpleImageData(new ImageData(rgba8888Data, width, height));
   }
 
-  static fromImage(image: ImageData): SimpleImageData {
+  static async fromImage(
+    image: ImageData,
+    options: ColorDepthConverterOptions,
+  ): Promise<SimpleImageData> {
     const imageData = new ImageData(
       new Uint8ClampedArray(image.data),
       image.width,
       image.height,
     );
     // ensure image is reduced to 16bit colors
-    color_depth_converter.reduceColorDepthOfRgba8888ToArgb1555(imageData.data);
+    await reduceColorDepthOfRgba8888ToArgb1555(
+      imageData.data,
+      options.alphaThreshold,
+    );
     return new SimpleImageData(imageData);
   }
 }

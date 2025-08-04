@@ -5,16 +5,26 @@ import { createImageDataFromFile } from "src/functions/file-import";
 import { quantizeImageTo16Colors } from "src/functions/quantization";
 import SimpleImageData from "src/objects/image-data/SimpleImageData";
 import { useTemplateRef } from "vue";
+import TgxCoderOptionsStruct from "src/objects/options/TgxCoderOptions";
+import ColorDepthConverterOptionsStruct from "src/objects/options/ColorDepthConverterOptions";
+
+// only to hold data
+const tgxCoderOptions = new TgxCoderOptionsStruct();
+const colorDepthConverterOptions = new ColorDepthConverterOptionsStruct();
 
 const imageCanvas = useTemplateRef("image-canvas");
 
-async function uploadFile(event: Event) {
+async function uploadFile(
+  event: Event,
+  colorDepthConverterOptions: ColorDepthConverterOptionsStruct,
+) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
     const imageData = await createImageDataFromFile(file);
-    const simpleImageData = SimpleImageData.fromImage(
-      quantizeImageTo16Colors(imageData),
+    const simpleImageData = await SimpleImageData.fromImage(
+      await quantizeImageTo16Colors(imageData, colorDepthConverterOptions),
+      colorDepthConverterOptions,
     );
     const canvas = imageCanvas.value!;
     canvas.width = simpleImageData.width;
@@ -32,9 +42,13 @@ async function uploadFile(event: Event) {
 <template>
   <div class="tgx-file">
     <div class="menu">
-      <input type="file" accept="image/*,.tgx" @change="uploadFile" />
+      <input
+        type="file"
+        accept="image/*,.tgx"
+        @change="(ev) => uploadFile(ev, colorDepthConverterOptions.copy())"
+      />
       <button>Export</button>
-      <TgxCoderOptions />
+      <TgxCoderOptions v-model="tgxCoderOptions" />
     </div>
     <div class="canvas">
       <FixedView>
