@@ -6,13 +6,42 @@ import {
   convertArgb1555ToRgba8888,
 } from "zig-src/color_depth_converter.zig";
 
-const NUMBER_OF_BYTES_IN_ARGB1555 = 2 ** 16;
+interface PaletteQuantizationOptions {
+  useFullPalette: false;
+  reducedPaletteMaxColors: number;
+  reducedPaletteColorDistanceFormula: iq.ColorDistanceFormula;
+  reducedPaletteQuantization: iq.PaletteQuantization;
+}
 
-async function getArgb1555ColorPalette() {
+interface FullPaletteQuantizationOptions {
+  useFullPalette: true;
+}
+
+interface ImageQuantizationOptions {
+  imageColorDistanceFormula: iq.ColorDistanceFormula;
+  imageQuantization: iq.ImageQuantization;
+}
+export type QuantizationOptions = (
+  | PaletteQuantizationOptions
+  | FullPaletteQuantizationOptions
+) &
+  ImageQuantizationOptions;
+
+export const NUMBER_OF_BYTES_IN_ARGB1555 = 2 ** 16;
+
+const PERCENT_FORMATTER = new Intl.NumberFormat(navigator.language, {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
+
+async function getArgb1555ColorPalette(
+  onProgress?: (progress: string) => void,
+) {
   let finalPalette = undefined;
   if (finalPalette) {
     return finalPalette;
   }
+  onProgress?.("Generating full 16bit palette.");
   finalPalette = (async () => {
     const argb1555ColorPalette = Uint16Array.from(
       Array(NUMBER_OF_BYTES_IN_ARGB1555).keys(),
@@ -42,36 +71,56 @@ async function generateImageWithReducedPalette(
   return new ImageData(copiedBytesArray, image.width, image.height);
 }
 
-// TODO: make async
-// experiment and make optional,
-// maybe just make it configurable
-
-// source: https://ibezkrovnyi.github.io/image-quantization/#advanced-api-usage
 export async function quantizeImageTo16Colors(
   image: ImageData,
-  options: ColorDepthConverterOptions,
+  colorDepthConverterOptions: ColorDepthConverterOptions,
+  quantizationOptions?: QuantizationOptions,
+  onProgress?: (progress: string) => void,
 ): Promise<ImageData> {
-  const reducedColorDepthPointContainer = iq.utils.PointContainer.fromImageData(
-    await generateImageWithReducedPalette(image, options.alphaThreshold),
-  );
+  if (!quantizationOptions) {
+    return await generateImageWithReducedPalette(
+      image,
+      colorDepthConverterOptions.alphaThreshold,
+    );
+  }
 
-  const pointContainer = iq.utils.PointContainer.fromImageData(image);
+  const palette = quantizationOptions.useFullPalette
+    ? await getArgb1555ColorPalette(onProgress)
+    : await iq.buildPalette(
+        [
+          iq.utils.PointContainer.fromImageData(
+            await generateImageWithReducedPalette(
+              image,
+              colorDepthConverterOptions.alphaThreshold,
+            ),
+          ),
+        ],
+        {
+          colorDistanceFormula:
+            quantizationOptions.reducedPaletteColorDistanceFormula,
+          paletteQuantization: quantizationOptions.reducedPaletteQuantization,
+          colors: quantizationOptions.reducedPaletteMaxColors,
+          onProgress: onProgress
+            ? (process) =>
+                onProgress(
+                  `Building palette: ${PERCENT_FORMATTER.format(process)}`,
+                )
+            : undefined,
+        },
+      );
 
-  const distanceCalculator = new iq.distance.EuclideanBT709();
-  const paletteQuantizer = new iq.palette.RGBQuant(
-    distanceCalculator,
-    NUMBER_OF_BYTES_IN_ARGB1555,
-  );
-  paletteQuantizer.sample(reducedColorDepthPointContainer);
-  const palette = paletteQuantizer.quantizeSync();
-
-  const imageQuantizer = new iq.image.ErrorDiffusionArray(
-    distanceCalculator,
-    iq.image.ErrorDiffusionArrayKernel.SierraLite,
-  );
-  const resultPointContainer = imageQuantizer.quantizeSync(
-    pointContainer,
+  const inPointContainer = iq.utils.PointContainer.fromImageData(image);
+  const resultPointContainer = await iq.applyPalette(
+    inPointContainer,
     palette,
+    {
+      colorDistanceFormula: quantizationOptions.imageColorDistanceFormula,
+      imageQuantization: quantizationOptions.imageQuantization,
+      onProgress: onProgress
+        ? (process) =>
+            onProgress(`Quantization: ${PERCENT_FORMATTER.format(process)}`)
+        : undefined,
+    },
   );
 
   return new ImageData(
