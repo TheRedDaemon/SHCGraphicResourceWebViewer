@@ -1,33 +1,10 @@
 import * as iq from "image-q";
-import ColorDepthConverterOptions from "src/objects/options/ColorDepthConverterOptions";
+import QuantizationOptions from "src/objects/options/QuantizationOptions";
 
 import {
   reduceColorDepthOfRgba8888ToArgb1555,
   convertArgb1555ToRgba8888,
 } from "zig-src/color_depth_converter.zig";
-
-interface PaletteQuantizationOptions {
-  useFullPalette: false;
-  reducedPaletteMaxColors: number;
-  reducedPaletteColorDistanceFormula: iq.ColorDistanceFormula;
-  reducedPaletteQuantization: iq.PaletteQuantization;
-}
-
-interface FullPaletteQuantizationOptions {
-  useFullPalette: true;
-}
-
-interface ImageQuantizationOptions {
-  imageColorDistanceFormula: iq.ColorDistanceFormula;
-  imageQuantization: iq.ImageQuantization;
-}
-export type QuantizationOptions = (
-  | PaletteQuantizationOptions
-  | FullPaletteQuantizationOptions
-) &
-  ImageQuantizationOptions;
-
-export const NUMBER_OF_BYTES_IN_ARGB1555 = 2 ** 16;
 
 const PERCENT_FORMATTER = new Intl.NumberFormat(navigator.language, {
   style: "percent",
@@ -44,7 +21,7 @@ async function getArgb1555ColorPalette(
   onProgress?.("Generating full 16bit palette.");
   finalPalette = (async () => {
     const argb1555ColorPalette = Uint16Array.from(
-      Array(NUMBER_OF_BYTES_IN_ARGB1555).keys(),
+      Array(QuantizationOptions.REDUCED_PALETTE_COLORS_MAX).keys(),
     );
     const argb1555ColorPaletteAsRgba8888 = (
       await convertArgb1555ToRgba8888(argb1555ColorPalette)
@@ -73,14 +50,13 @@ async function generateImageWithReducedPalette(
 
 export async function quantizeImageTo16Colors(
   image: ImageData,
-  colorDepthConverterOptions: ColorDepthConverterOptions,
-  quantizationOptions?: QuantizationOptions,
+  quantizationOptions: QuantizationOptions,
   onProgress?: (progress: string) => void,
 ): Promise<ImageData> {
-  if (!quantizationOptions) {
+  if (!quantizationOptions.useQuantization) {
     return await generateImageWithReducedPalette(
       image,
-      colorDepthConverterOptions.alphaThreshold,
+      quantizationOptions.alphaThreshold,
     );
   }
 
@@ -91,7 +67,7 @@ export async function quantizeImageTo16Colors(
           iq.utils.PointContainer.fromImageData(
             await generateImageWithReducedPalette(
               image,
-              colorDepthConverterOptions.alphaThreshold,
+              quantizationOptions.alphaThreshold,
             ),
           ),
         ],
@@ -99,7 +75,7 @@ export async function quantizeImageTo16Colors(
           colorDistanceFormula:
             quantizationOptions.reducedPaletteColorDistanceFormula,
           paletteQuantization: quantizationOptions.reducedPaletteQuantization,
-          colors: quantizationOptions.reducedPaletteMaxColors,
+          colors: quantizationOptions.reducedPaletteColors,
           onProgress: onProgress
             ? (process) =>
                 onProgress(

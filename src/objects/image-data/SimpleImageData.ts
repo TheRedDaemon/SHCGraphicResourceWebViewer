@@ -5,7 +5,7 @@ import {
 } from "zig-src/color_depth_converter.zig";
 import { convertTgxToArgb } from "zig-src/tgx_coder.zig";
 import TgxCoderOptions from "src/objects/options/TgxCoderOptions";
-import ColorDepthConverterOptions from "src/objects/options/ColorDepthConverterOptions";
+import QuantizationOptions from "src/objects/options/QuantizationOptions";
 
 export default class SimpleImageData implements SHCImageData {
   #imageData: ImageData;
@@ -48,7 +48,7 @@ export default class SimpleImageData implements SHCImageData {
 
   static async fromImage(
     image: ImageData,
-    options: ColorDepthConverterOptions,
+    options: QuantizationOptions,
   ): Promise<SimpleImageData> {
     const imageData = new ImageData(
       new Uint8ClampedArray(image.data),
