@@ -5,13 +5,16 @@ import { createImageDataFromFile } from "src/functions/file-import";
 import { quantizeImageTo16Colors } from "src/functions/quantization";
 import SimpleImageData from "src/objects/image-data/SimpleImageData";
 import { useTemplateRef } from "vue";
-import TgxCoderOptionsStruct from "src/objects/options/TgxCoderOptions";
+import { createDefaultTgxCoderOptions } from "src/objects/options/tgx-coder-options";
 import QuantizationOptions from "src/components/general/QuantizationOptions.vue";
-import QuantizationOptionsStruct from "src/objects/options/QuantizationOptions";
+import {
+  type QuantizationOptions as QuantizationOptionsStruct,
+  createDefaultQuantizationOptions,
+} from "src/objects/options/quantization-options";
 
 // only to hold data
-const tgxCoderOptions = new TgxCoderOptionsStruct();
-const quantizationOptions = new QuantizationOptionsStruct();
+const tgxCoderOptions = createDefaultTgxCoderOptions();
+const quantizationOptions = createDefaultQuantizationOptions();
 
 const imageCanvas = useTemplateRef("image-canvas");
 
@@ -46,7 +49,7 @@ async function uploadFile(
       <input
         type="file"
         accept="image/*,.tgx"
-        @change="(ev) => uploadFile(ev, quantizationOptions.copy())"
+        @change="(ev) => uploadFile(ev, { ...quantizationOptions })"
       />
       <button>Export</button>
       <QuantizationOptions v-model="quantizationOptions" />

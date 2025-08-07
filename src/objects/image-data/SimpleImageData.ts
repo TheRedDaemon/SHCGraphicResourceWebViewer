@@ -4,8 +4,8 @@ import {
   reduceColorDepthOfRgba8888ToArgb1555,
 } from "zig-src/color_depth_converter.zig";
 import { convertTgxToArgb } from "zig-src/tgx_coder.zig";
-import TgxCoderOptions from "src/objects/options/TgxCoderOptions";
-import QuantizationOptions from "src/objects/options/QuantizationOptions";
+import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
+import { type QuantizationOptions } from "src/objects/options/quantization-options";
 
 export default class SimpleImageData implements SHCImageData {
   #imageData: ImageData;
@@ -37,8 +37,8 @@ export default class SimpleImageData implements SHCImageData {
         width,
         height,
         tgxData,
-        options.pixel_repeat_threshold,
-        options.padding_alignment,
+        options.pixelRepeatThreshold,
+        options.paddingAlignment,
       )
     ).typedArray;
     const rgba8888Data = (await convertArgb1555ToRgba8888(argb1555Data))

@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import TgxCoderOptions from "src/objects/options/TgxCoderOptions";
-import { ref, watch } from "vue";
+import * as tco from "src/objects/options/tgx-coder-options";
+import { ref } from "vue";
 
-const model = defineModel<TgxCoderOptions>({ required: true });
+const model = defineModel<tco.TgxCoderOptions>({ required: true });
+const tgxCoderOptions = ref(model.value);
 
-const pixelRepeatThreshold = ref(model.value.pixel_repeat_threshold);
-const paddingAlignment = ref(model.value.padding_alignment);
-
-watch(
-  pixelRepeatThreshold,
-  (newThreshold) => (model.value.pixel_repeat_threshold = newThreshold),
-);
-watch(
-  paddingAlignment,
-  (newAlignment) => (model.value.padding_alignment = newAlignment),
-);
+function clamp(min: number, value: number, max: number) {
+  return Math.max(min, Math.min(value, max));
+}
 </script>
 
 <template>
@@ -23,16 +16,24 @@ watch(
     <div>
       <label for="pixel-repeat-threshold">Pixel Repeat Threshold</label>
       <input
-        v-model="pixelRepeatThreshold"
+        v-model="tgxCoderOptions.pixelRepeatThreshold"
         name="pixel-repeat-threshold"
         type="number"
-        min="{{TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_MIN}}"
-        max="{{TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_MAX}}"
+        :min="tco.PIXEL_REPEAT_THRESHOLD_MIN"
+        :max="tco.PIXEL_REPEAT_THRESHOLD_MAX"
         step="1"
+        @input="
+          tgxCoderOptions.pixelRepeatThreshold = clamp(
+            tco.PIXEL_REPEAT_THRESHOLD_MIN,
+            tgxCoderOptions.pixelRepeatThreshold,
+            tco.PIXEL_REPEAT_THRESHOLD_MAX,
+          )
+        "
       />
       <button
         @click="
-          pixelRepeatThreshold = TgxCoderOptions.PIXEL_REPEAT_THRESHOLD_DEFAULT
+          tgxCoderOptions.pixelRepeatThreshold =
+            tco.PIXEL_REPEAT_THRESHOLD_DEFAULT
         "
       >
         Reset
@@ -40,17 +41,25 @@ watch(
     </div>
     <div>
       <label for="padding-alignment">Padding Alignment</label>
-      <!-- TODO: check if this ranges fit -->
       <input
-        v-model="paddingAlignment"
+        v-model="tgxCoderOptions.paddingAlignment"
         name="padding-alignment"
         type="number"
-        min="{{TgxCoderOptions.PADDING_ALIGNMENT_MIN}}"
-        max="{{TgxCoderOptions.PADDING_ALIGNMENT_MAX}}"
+        :min="tco.PADDING_ALIGNMENT_MIN"
+        :max="tco.PADDING_ALIGNMENT_MAX"
         step="1"
+        @input="
+          tgxCoderOptions.paddingAlignment = clamp(
+            tco.PADDING_ALIGNMENT_MIN,
+            tgxCoderOptions.paddingAlignment,
+            tco.PADDING_ALIGNMENT_MAX,
+          )
+        "
       />
       <button
-        @click="paddingAlignment = TgxCoderOptions.PADDING_ALIGNMENT_DEFAULT"
+        @click="
+          tgxCoderOptions.paddingAlignment = tco.PADDING_ALIGNMENT_DEFAULT
+        "
       >
         Reset
       </button>

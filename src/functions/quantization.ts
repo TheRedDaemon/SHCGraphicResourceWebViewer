@@ -1,6 +1,8 @@
 import * as iq from "image-q";
-import QuantizationOptions from "src/objects/options/QuantizationOptions";
-
+import {
+  type QuantizationOptions,
+  REDUCED_PALETTE_COLORS_MAX,
+} from "src/objects/options/quantization-options";
 import {
   reduceColorDepthOfRgba8888ToArgb1555,
   convertArgb1555ToRgba8888,
@@ -21,7 +23,7 @@ async function getArgb1555ColorPalette(
   onProgress?.("Generating full 16bit palette.");
   finalPalette = (async () => {
     const argb1555ColorPalette = Uint16Array.from(
-      Array(QuantizationOptions.REDUCED_PALETTE_COLORS_MAX).keys(),
+      Array(REDUCED_PALETTE_COLORS_MAX).keys(),
     );
     const argb1555ColorPaletteAsRgba8888 = (
       await convertArgb1555ToRgba8888(argb1555ColorPalette)
