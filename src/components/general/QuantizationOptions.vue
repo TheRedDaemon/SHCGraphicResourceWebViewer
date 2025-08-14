@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import NumberInput from "src/components/general/NumberInput.vue";
+import SelectInput from "src/components/general/SelectInput.vue";
 import * as qo from "src/objects/options/quantization-options";
 import { ref } from "vue";
 
@@ -15,29 +17,13 @@ function clamp(min: number, value: number, max: number) {
 <template>
   <div class="quantization-options">
     <h3>Quantization Options</h3>
-    <div>
-      <label for="alpha-threshold">Alpha Threshold</label>
-      <input
-        v-model="quantizationOptions.alphaThreshold"
-        name="alpha-threshold"
-        type="number"
-        :min="qo.ALPHA_THRESHOLD_MIN"
-        :max="qo.ALPHA_THRESHOLD_MAX"
-        step="1"
-        @input="
-          quantizationOptions.alphaThreshold = clamp(
-            qo.ALPHA_THRESHOLD_MIN,
-            quantizationOptions.alphaThreshold,
-            qo.ALPHA_THRESHOLD_MAX,
-          )
-        "
-      />
-      <button
-        @click="quantizationOptions.alphaThreshold = qo.ALPHA_THRESHOLD_DEFAULT"
-      >
-        Reset
-      </button>
-    </div>
+    <NumberInput
+      :min="qo.ALPHA_THRESHOLD_MIN"
+      :max="qo.ALPHA_THRESHOLD_MAX"
+      :defaultValue="qo.ALPHA_THRESHOLD_DEFAULT"
+      label="Alpha Threshold"
+      v-model="quantizationOptions.alphaThreshold"
+    />
     <div>
       <label for="use-quantization">Use Quantization</label>
       <input
@@ -81,27 +67,12 @@ function clamp(min: number, value: number, max: number) {
       </button>
     </div>
 
-    <div>
-      <label for="reduced-palette-color-distance-formula">
-        Color Distance Formula for Palette Quantization
-      </label>
-      <select
-        name="reduced-palette-color-distance-formula"
-        v-model="quantizationOptions.reducedPaletteColorDistanceFormula"
-      >
-        <option v-for="item in qo.ColorDistanceFormulaHelper" :key="item">
-          {{ item }}
-        </option>
-      </select>
-      <button
-        @click="
-          quantizationOptions.reducedPaletteColorDistanceFormula =
-            qo.REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT
-        "
-      >
-        Reset
-      </button>
-    </div>
+    <SelectInput
+      :defaultValue="qo.REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT"
+      :options="qo.ColorDistanceFormulaHelper"
+      label="Color Distance Formula for Palette Quantization"
+      v-model="quantizationOptions.reducedPaletteColorDistanceFormula"
+    />
     <div>
       <label for="reduced-palette-quantization">
         Palette Quantization Method
