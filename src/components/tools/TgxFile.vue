@@ -60,7 +60,6 @@ async function uploadFile(
         <canvas ref="image-canvas"></canvas>
       </FixedView>
     </div>
-    <div class="meta"></div>
   </div>
 </template>
 
@@ -74,16 +73,16 @@ async function uploadFile(
 }
 
 .canvas {
-  padding: 0 1rem;
   flex-grow: 1;
 }
 
-.menu,
-.meta {
-  min-width: 200px;
+.menu {
+  min-width: 300px;
+  max-width: 35%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  overflow-y: auto;
+  padding-right: 1rem;
 }
 
 button {

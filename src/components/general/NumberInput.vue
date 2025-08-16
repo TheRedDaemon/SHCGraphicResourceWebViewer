@@ -7,6 +7,8 @@ interface Props {
   max: number;
   defaultValue: number;
   label: string;
+  integer: boolean;
+  step: number;
 }
 
 defineProps<Props>();
@@ -18,18 +20,21 @@ watch(value, () => (model.value = value.value));
 </script>
 
 <template>
-  <div>
-    <label>
-      {{ label }}
-      <input
-        v-model="value"
-        type="number"
-        :min="min"
-        :max="max"
-        step="1"
-        @input="value = Math.max(min, Math.min(value, max))"
-      />
-      <button @click="value = defaultValue">Reset</button>
-    </label>
-  </div>
+  <label>
+    <span>{{ label }}</span>
+    <input
+      v-model="value"
+      type="number"
+      :min="min"
+      :max="max"
+      :step="step"
+      @input="
+        value = Math.max(
+          min,
+          Math.min(integer ? Math.round(value) : value, max),
+        )
+      "
+    />
+    <button @click="value = defaultValue">&#8630;</button>
+  </label>
 </template>

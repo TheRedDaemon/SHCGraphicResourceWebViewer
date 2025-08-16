@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CheckboxInput from "src/components/general/CheckboxInput.vue";
 import NumberInput from "src/components/general/NumberInput.vue";
 import SelectInput from "src/components/general/SelectInput.vue";
 import * as qo from "src/objects/options/quantization-options";
@@ -8,10 +9,6 @@ const model = defineModel<qo.QuantizationOptions>({
   required: true,
 });
 const quantizationOptions = ref(model.value);
-
-function clamp(min: number, value: number, max: number) {
-  return Math.max(min, Math.min(value, max));
-}
 </script>
 
 <template>
@@ -23,116 +20,67 @@ function clamp(min: number, value: number, max: number) {
       :defaultValue="qo.ALPHA_THRESHOLD_DEFAULT"
       label="Alpha Threshold"
       v-model="quantizationOptions.alphaThreshold"
+      :integer="true"
+      :step="1"
     />
-    <div>
-      <label for="use-quantization">Use Quantization</label>
-      <input
-        v-model="quantizationOptions.useQuantization"
-        name="use-quantization"
-        type="checkbox"
-      />
-    </div>
-    <div>
-      <label for="use-full-palette">Use Full Palette</label>
-      <input
-        v-model="quantizationOptions.useFullPalette"
-        name="use-full-palette"
-        type="checkbox"
-      />
-    </div>
-    <div>
-      <label for="reduced-palette-colors">Max Colors in Palette</label>
-      <input
-        v-model="quantizationOptions.reducedPaletteColors"
-        name="reduced-palette-colors"
-        type="number"
-        :min="qo.REDUCED_PALETTE_COLORS_MIN"
-        :max="qo.REDUCED_PALETTE_COLORS_MAX"
-        step="1"
-        @input="
-          quantizationOptions.reducedPaletteColors = clamp(
-            qo.REDUCED_PALETTE_COLORS_MIN,
-            quantizationOptions.reducedPaletteColors,
-            qo.REDUCED_PALETTE_COLORS_MAX,
-          )
-        "
-      />
-      <button
-        @click="
-          quantizationOptions.reducedPaletteColors =
-            qo.REDUCED_PALETTE_COLORS_DEFAULT
-        "
-      >
-        Reset
-      </button>
-    </div>
-
+    <CheckboxInput
+      label="Use Quantization"
+      :defaultValue="false"
+      v-model="quantizationOptions.useQuantization"
+    />
+    <CheckboxInput
+      v-show="quantizationOptions.useQuantization"
+      label="Use Full Palette"
+      :defaultValue="false"
+      v-model="quantizationOptions.useFullPalette"
+    />
+    <NumberInput
+      v-show="
+        quantizationOptions.useQuantization &&
+        !quantizationOptions.useFullPalette
+      "
+      :min="qo.REDUCED_PALETTE_COLORS_MIN"
+      :max="qo.REDUCED_PALETTE_COLORS_MAX"
+      :defaultValue="qo.REDUCED_PALETTE_COLORS_DEFAULT"
+      label="Max Colors in Palette"
+      v-model="quantizationOptions.reducedPaletteColors"
+      :integer="true"
+      :step="1"
+    />
     <SelectInput
+      v-show="
+        quantizationOptions.useQuantization &&
+        !quantizationOptions.useFullPalette
+      "
       :defaultValue="qo.REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT"
       :options="qo.ColorDistanceFormulaHelper"
       label="Color Distance Formula for Palette Quantization"
       v-model="quantizationOptions.reducedPaletteColorDistanceFormula"
     />
-    <div>
-      <label for="reduced-palette-quantization">
-        Palette Quantization Method
-      </label>
-      <select
-        name="reduced-palette-quantization"
-        v-model="quantizationOptions.reducedPaletteQuantization"
-      >
-        <option v-for="item in qo.PaletteQuantizationHelper" :key="item">
-          {{ item }}
-        </option>
-      </select>
-      <button
-        @click="
-          quantizationOptions.reducedPaletteQuantization =
-            qo.REDUCED_PALETTE_QUANTIZATION_DEFAULT
-        "
-      >
-        Reset
-      </button>
-    </div>
-    <div>
-      <label for="image-color-distance-formula">
-        Color Distance Formula for Image Quantization
-      </label>
-      <select
-        name="image-color-distance-formula"
-        v-model="quantizationOptions.imageColorDistanceFormula"
-      >
-        <option v-for="item in qo.ColorDistanceFormulaHelper" :key="item">
-          {{ item }}
-        </option>
-      </select>
-      <button
-        @click="
-          quantizationOptions.imageColorDistanceFormula =
-            qo.IMAGE_COLOR_DISTANCE_FORMULA_DEFAULT
-        "
-      >
-        Reset
-      </button>
-    </div>
-    <div>
-      <label for="image-quantization">Image Quantization Method</label>
-      <select
-        name="image-quantization"
-        v-model="quantizationOptions.imageQuantization"
-      >
-        <option v-for="item in qo.ImageQuantizationHelper" :key="item">
-          {{ item }}
-        </option>
-      </select>
-      <button
-        @click="
-          quantizationOptions.imageQuantization = qo.IMAGE_QUANTIZATION_DEFAULT
-        "
-      >
-        Reset
-      </button>
-    </div>
+    <SelectInput
+      v-show="
+        quantizationOptions.useQuantization &&
+        !quantizationOptions.useFullPalette
+      "
+      :defaultValue="qo.REDUCED_PALETTE_QUANTIZATION_DEFAULT"
+      :options="qo.PaletteQuantizationHelper"
+      label="Palette Quantization Method"
+      v-model="quantizationOptions.reducedPaletteQuantization"
+    />
+    <SelectInput
+      v-show="quantizationOptions.useQuantization"
+      :defaultValue="qo.IMAGE_COLOR_DISTANCE_FORMULA_DEFAULT"
+      :options="qo.ColorDistanceFormulaHelper"
+      label="Color Distance Formula for Image Quantization"
+      v-model="quantizationOptions.imageColorDistanceFormula"
+    />
+    <SelectInput
+      v-show="quantizationOptions.useQuantization"
+      :defaultValue="qo.IMAGE_QUANTIZATION_DEFAULT"
+      :options="qo.ImageQuantizationHelper"
+      label="Image Quantization Method"
+      v-model="quantizationOptions.imageQuantization"
+    />
   </div>
 </template>
 
@@ -142,6 +90,7 @@ function clamp(min: number, value: number, max: number) {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  margin-bottom: 1rem;
 
   h3 {
     margin: 0;
@@ -150,33 +99,55 @@ function clamp(min: number, value: number, max: number) {
     text-align: center;
   }
 
-  div {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem;
-    margin: 0.25rem;
-  }
-
   label {
-    grid-column: 1 / span 2;
+    width: 100%;
+    padding: 0.25rem;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
   }
 
-  select {
+  :deep(span) {
+    grid-column: 1 / span 4;
+    margin-right: auto;
+  }
+
+  :deep(select) {
+    grid-column: 5 / span 2;
     color: var(--color-primary);
     background-color: var(--color-text);
     border: none;
   }
 
-  input {
+  :deep(input) {
+    grid-column: 5 / span 2;
     color: var(--color-primary);
     background-color: var(--color-text);
     border: none;
   }
 
-  button {
+  :deep(button) {
     color: var(--color-primary);
     border-radius: 0%;
     border: none;
+  }
+
+  @media (max-width: 1000px) {
+    label {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    :deep(span) {
+      grid-column: 1 / span 3;
+    }
+
+    :deep(select) {
+      grid-column: 1 / span 2;
+    }
+
+    :deep(input) {
+      grid-column: 1 / span 2;
+    }
   }
 }
 </style>
