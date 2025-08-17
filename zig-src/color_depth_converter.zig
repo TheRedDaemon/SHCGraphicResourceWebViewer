@@ -1,8 +1,7 @@
 const std = @import("std");
-const zigar = @import("zigar");
 const types = @import("types.zig");
 
-pub fn reduceColorDepthOfRgba8888ToArgb1555(promise: zigar.function.Promise(void), input: []u8, alpha_threshold: u8) !void {
+pub fn reduceColorDepthOfRgba8888ToArgb1555(input: []u8, alpha_threshold: u8) !void {
     if (input.len % 4 != 0) return error.InvalidInputSize;
     const rgba_image = std.mem.bytesAsSlice(types.Rgba8888, input);
     for (rgba_image) |*rgba| {
@@ -16,10 +15,9 @@ pub fn reduceColorDepthOfRgba8888ToArgb1555(promise: zigar.function.Promise(void
         rgba.b = (rgba.b << 3) | (rgba.b >> 2);
         rgba.a = if (rgba.a > 0) 255 else 0;
     }
-    promise.resolve({});
 }
 
-pub fn convertRgba8888ToArgb1555(allocator: std.mem.Allocator, promise: zigar.function.Promise([]const u16), input: []const u8, alpha_threshold: u8) !void {
+pub fn convertRgba8888ToArgb1555(allocator: std.mem.Allocator, input: []const u8, alpha_threshold: u8) ![]const u16 {
     if (input.len % 4 != 0) return error.InvalidInputSize;
     const rgba_image = std.mem.bytesAsSlice(types.Rgba8888, input);
 
@@ -32,11 +30,11 @@ pub fn convertRgba8888ToArgb1555(allocator: std.mem.Allocator, promise: zigar.fu
         argb.b = @truncate(rgba.b >> 3);
         argb.a = if (alpha_threshold > rgba.a) 1 else 0;
     }
-    promise.resolve(std.mem.bytesAsSlice(u16, std.mem.sliceAsBytes(output)));
+    return std.mem.bytesAsSlice(u16, std.mem.sliceAsBytes(output));
 }
 
 // source: https://stackoverflow.com/a/71109890
-pub fn convertArgb1555ToRgba8888(allocator: std.mem.Allocator, promise: zigar.function.Promise([]const u8), input: []const u16) !void {
+pub fn convertArgb1555ToRgba8888(allocator: std.mem.Allocator, input: []const u16) ![]const u8 {
     const argb_image = std.mem.bytesAsSlice(types.Argb1555, std.mem.sliceAsBytes(input));
 
     const output = try allocator.alloc(types.Rgba8888, argb_image.len);
@@ -48,5 +46,5 @@ pub fn convertArgb1555ToRgba8888(allocator: std.mem.Allocator, promise: zigar.fu
         rgba.b = (@as(u8, argb.b) << 3) | (@as(u8, argb.b) >> 2);
         rgba.a = if (argb.a == 1) 255 else 0;
     }
-    promise.resolve(std.mem.sliceAsBytes(output));
+    return std.mem.sliceAsBytes(output);
 }

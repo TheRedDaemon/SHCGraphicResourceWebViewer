@@ -1,10 +1,10 @@
-export async function convertTgxToArgb(
+export function convertTgxToArgb(
   width: number,
   height: number,
-  input: Uint8ClampedArray,
+  input: Uint8ClampedArray<ArrayBuffer>,
   pixel_repeat_threshold: number,
   padding_alignment: number,
-): Promise<{
+): {
   [number]: number;
-  typedArray: Uint16Array;
-}>;
+  typedArray: Uint16Array<ArrayBuffer>;
+};

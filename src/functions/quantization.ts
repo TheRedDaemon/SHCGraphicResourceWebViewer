@@ -25,9 +25,8 @@ async function getArgb1555ColorPalette(
     const argb1555ColorPalette = Uint16Array.from(
       Array(REDUCED_PALETTE_COLORS_MAX).keys(),
     );
-    const argb1555ColorPaletteAsRgba8888 = (
-      await convertArgb1555ToRgba8888(argb1555ColorPalette)
-    ).typedArray;
+    const argb1555ColorPaletteAsRgba8888 =
+      convertArgb1555ToRgba8888(argb1555ColorPalette).typedArray;
 
     const palette = new iq.utils.Palette();
     for (const rgba8888Color of new Uint32Array(
@@ -41,12 +40,12 @@ async function getArgb1555ColorPalette(
   return finalPalette;
 }
 
-async function generateImageWithReducedPalette(
+function generateImageWithReducedPalette(
   image: ImageData,
   alphaThreshold: number,
-): Promise<ImageData> {
+): ImageData {
   const copiedBytesArray = new Uint8ClampedArray(image.data);
-  await reduceColorDepthOfRgba8888ToArgb1555(copiedBytesArray, alphaThreshold);
+  reduceColorDepthOfRgba8888ToArgb1555(copiedBytesArray, alphaThreshold);
   return new ImageData(copiedBytesArray, image.width, image.height);
 }
 
@@ -56,7 +55,7 @@ export async function quantizeImageTo16Colors(
   onProgress?: (progress: string) => void,
 ): Promise<ImageData> {
   if (!quantizationOptions.useQuantization) {
-    return await generateImageWithReducedPalette(
+    return generateImageWithReducedPalette(
       image,
       quantizationOptions.alphaThreshold,
     );
@@ -67,7 +66,7 @@ export async function quantizeImageTo16Colors(
     : await iq.buildPalette(
         [
           iq.utils.PointContainer.fromImageData(
-            await generateImageWithReducedPalette(
+            generateImageWithReducedPalette(
               image,
               quantizationOptions.alphaThreshold,
             ),
@@ -81,7 +80,7 @@ export async function quantizeImageTo16Colors(
           onProgress: onProgress
             ? (process) =>
                 onProgress(
-                  `Building palette: ${PERCENT_FORMATTER.format(process)}`,
+                  `Building palette: ${PERCENT_FORMATTER.format(process / 100.0)}`,
                 )
             : undefined,
         },
@@ -96,13 +95,17 @@ export async function quantizeImageTo16Colors(
       imageQuantization: quantizationOptions.imageQuantization,
       onProgress: onProgress
         ? (process) =>
-            onProgress(`Quantization: ${PERCENT_FORMATTER.format(process)}`)
+            onProgress(
+              `Quantization: ${PERCENT_FORMATTER.format(process / 100.0)}`,
+            )
         : undefined,
     },
   );
 
   return new ImageData(
-    new Uint8ClampedArray(resultPointContainer.toUint32Array().buffer),
+    new Uint8ClampedArray(
+      resultPointContainer.toUint32Array().buffer,
+    ) as Uint8ClampedArray<ArrayBuffer>,
     image.width,
     image.height,
   );

@@ -26,37 +26,34 @@ export default class SimpleImageData implements SHCImageData {
     return this.#imageData.height;
   }
 
-  static async fromTgx(
+  static fromTgx(
     width: number,
     height: number,
-    tgxData: Uint8ClampedArray,
+    tgxData: Uint8ClampedArray<ArrayBuffer>,
     options: TgxCoderOptions,
-  ): Promise<SimpleImageData> {
-    const argb1555Data = (
-      await convertTgxToArgb(
-        width,
-        height,
-        tgxData,
-        options.pixelRepeatThreshold,
-        options.paddingAlignment,
-      )
+  ): SimpleImageData {
+    const argb1555Data = convertTgxToArgb(
+      width,
+      height,
+      tgxData,
+      options.pixelRepeatThreshold,
+      options.paddingAlignment,
     ).typedArray;
-    const rgba8888Data = (await convertArgb1555ToRgba8888(argb1555Data))
-      .typedArray;
+    const rgba8888Data = convertArgb1555ToRgba8888(argb1555Data).typedArray;
     return new SimpleImageData(new ImageData(rgba8888Data, width, height));
   }
 
-  static async fromImage(
+  static fromImage(
     image: ImageData,
     options: QuantizationOptions,
-  ): Promise<SimpleImageData> {
+  ): SimpleImageData {
     const imageData = new ImageData(
       new Uint8ClampedArray(image.data),
       image.width,
       image.height,
     );
     // ensure image is reduced to 16bit colors
-    await reduceColorDepthOfRgba8888ToArgb1555(
+    reduceColorDepthOfRgba8888ToArgb1555(
       imageData.data,
       options.alphaThreshold,
     );

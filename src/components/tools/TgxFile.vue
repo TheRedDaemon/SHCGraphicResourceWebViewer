@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// TODO: the quantization takes a lot of memory for large images, too much actually for handling the animation tiles, so either this needs fixing, or an alternative solution (individual pictures?, lwo level API?)
+// TODO: any solution for a global exception handler for vue?
+
 import FixedView from "src/components/general/CanvasView.vue";
 import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
 import { createImageDataFromFile } from "src/functions/file-import";
@@ -21,13 +24,14 @@ const imageCanvas = useTemplateRef("image-canvas");
 async function uploadFile(
   event: Event,
   quantizationOptions: QuantizationOptionsStruct,
+  onProgress?: (progress: string) => void,
 ) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
     const imageData = await createImageDataFromFile(file);
-    const simpleImageData = await SimpleImageData.fromImage(
-      await quantizeImageTo16Colors(imageData, quantizationOptions),
+    const simpleImageData = SimpleImageData.fromImage(
+      await quantizeImageTo16Colors(imageData, quantizationOptions, onProgress),
       quantizationOptions,
     );
     const canvas = imageCanvas.value!;
@@ -49,7 +53,9 @@ async function uploadFile(
       <input
         type="file"
         accept="image/*,.tgx"
-        @change="(ev) => uploadFile(ev, { ...quantizationOptions })"
+        @change="
+          (ev) => uploadFile(ev, { ...quantizationOptions }, console.log)
+        "
       />
       <button>Export</button>
       <QuantizationOptions v-model="quantizationOptions" />
@@ -74,6 +80,7 @@ async function uploadFile(
 
 .canvas {
   flex-grow: 1;
+  overflow: hidden;
 }
 
 .menu {

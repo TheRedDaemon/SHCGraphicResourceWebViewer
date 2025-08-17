@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import HelloWorld from "src/components/HelloWorld.vue";
 import TgxFile from "src/components/tools/TgxFile.vue";
 import { ref, computed, type Component } from "vue";
 
 const routes: Record<string, [string, Component | null]> = {
-  "#/hello": ["Hello", HelloWorld],
   "#/tgx": ["Tgx File", TgxFile],
   "#/about": ["About", null],
 };

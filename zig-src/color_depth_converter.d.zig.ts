@@ -1,17 +1,17 @@
-export async function reduceColorDepthOfRgba8888ToArgb1555(
-  input: Uint8ClampedArray,
+export function reduceColorDepthOfRgba8888ToArgb1555(
+  input: Uint8ClampedArray<ArrayBuffer>,
   alphaThreshold: number,
-): Promise<void>;
+): void;
 
-export async function convertRgba8888ToArgb1555(
-  input: Uint8ClampedArray,
+export function convertRgba8888ToArgb1555(
+  input: Uint8ClampedArray<ArrayBuffer>,
   alphaThreshold: number,
-): Promise<{
+): {
   [number]: number;
-  typedArray: Uint16Array;
-}>;
+  typedArray: Uint16Array<ArrayBuffer>;
+};
 
-export async function convertArgb1555ToRgba8888(input: Uint16Array): Promise<{
+export function convertArgb1555ToRgba8888(input: Uint16Array): {
   [number]: number;
-  typedArray: Uint8ClampedArray;
-}>;
+  typedArray: Uint8ClampedArray<ArrayBuffer>;
+};
