@@ -49,7 +49,6 @@ export const ImageQuantizationHelper: {
 export type QuantizationOptions = {
   alphaThreshold: number;
   useQuantization: boolean;
-  useFullPalette: boolean;
   reducedPaletteColors: number;
   reducedPaletteColorDistanceFormula: ColorDistanceFormula;
   reducedPaletteQuantization: PaletteQuantization;
@@ -103,7 +102,6 @@ export function createDefaultQuantizationOptions(): QuantizationOptions {
   return {
     alphaThreshold: ALPHA_THRESHOLD_DEFAULT,
     useQuantization: false,
-    useFullPalette: false,
     reducedPaletteColors: REDUCED_PALETTE_COLORS_DEFAULT,
     reducedPaletteColorDistanceFormula:
       REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT,

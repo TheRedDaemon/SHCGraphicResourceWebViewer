@@ -28,17 +28,8 @@ const quantizationOptions = ref(model.value);
       :defaultValue="false"
       v-model="quantizationOptions.useQuantization"
     />
-    <CheckboxInput
-      v-show="quantizationOptions.useQuantization"
-      label="Use Full Palette"
-      :defaultValue="false"
-      v-model="quantizationOptions.useFullPalette"
-    />
     <NumberInput
-      v-show="
-        quantizationOptions.useQuantization &&
-        !quantizationOptions.useFullPalette
-      "
+      v-show="quantizationOptions.useQuantization"
       :min="qo.REDUCED_PALETTE_COLORS_MIN"
       :max="qo.REDUCED_PALETTE_COLORS_MAX"
       :defaultValue="qo.REDUCED_PALETTE_COLORS_DEFAULT"
@@ -48,20 +39,14 @@ const quantizationOptions = ref(model.value);
       :step="1"
     />
     <SelectInput
-      v-show="
-        quantizationOptions.useQuantization &&
-        !quantizationOptions.useFullPalette
-      "
+      v-show="quantizationOptions.useQuantization"
       :defaultValue="qo.REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT"
       :options="qo.ColorDistanceFormulaHelper"
       label="Color Distance Formula for Palette Quantization"
       v-model="quantizationOptions.reducedPaletteColorDistanceFormula"
     />
     <SelectInput
-      v-show="
-        quantizationOptions.useQuantization &&
-        !quantizationOptions.useFullPalette
-      "
+      v-show="quantizationOptions.useQuantization"
       :defaultValue="qo.REDUCED_PALETTE_QUANTIZATION_DEFAULT"
       :options="qo.PaletteQuantizationHelper"
       label="Palette Quantization Method"
