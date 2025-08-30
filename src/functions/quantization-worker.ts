@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 
 import * as iq from "image-q";
-import { PointContainer as FakePointContainer } from "src/functions/quantization-override-files/Int32PointContainer";
+//import { PointContainer as FakePointContainer } from "src/functions/quantization-override-files/Int32PointContainer";
+import { PointContainer as FakePointContainer } from "src/functions/quantization-override-files/RgbaPointContainer";
 import type { QuantizationOptions } from "src/objects/options/quantization-options";
 
 // TODO?: FakePoints improve memory usage, but seem to slow down the computation
