@@ -12,7 +12,6 @@ const WORKER_HANDLER = (function () {
   return {
     async runQuantizationInWorker(
       width: number,
-      height: number,
       consumedOriginalImageDataArray: Uint8ClampedArray<ArrayBuffer>,
       consumedReducedPaletteImageDataArray: Uint8ClampedArray<ArrayBuffer>,
       quantizationOptions: QuantizationOptions,
@@ -57,7 +56,6 @@ const WORKER_HANDLER = (function () {
         current_worker.postMessage(
           {
             width,
-            height,
             originalImageArray: consumedOriginalImageDataArray,
             reducedPaletteImageArray: consumedReducedPaletteImageDataArray,
             options: quantizationOptions,
@@ -117,7 +115,6 @@ export async function quantizeImageTo16Colors(
   onProgress?.("Starting worker.");
   const resultArray = await WORKER_HANDLER.runQuantizationInWorker(
     imageWithReducedPalette.width,
-    imageWithReducedPalette.height,
     new Uint8ClampedArray(image.data), // copy, since it is consumed
     imageWithReducedPalette.data,
     quantizationOptions,

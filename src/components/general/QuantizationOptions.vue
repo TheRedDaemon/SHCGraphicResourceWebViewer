@@ -30,41 +30,27 @@ const quantizationOptions = ref(model.value);
     />
     <NumberInput
       v-show="quantizationOptions.useQuantization"
-      :min="qo.REDUCED_PALETTE_COLORS_MIN"
-      :max="qo.REDUCED_PALETTE_COLORS_MAX"
-      :defaultValue="qo.REDUCED_PALETTE_COLORS_DEFAULT"
+      :min="qo.COLORS_MIN"
+      :max="qo.COLORS_MAX"
+      :defaultValue="qo.COLORS_DEFAULT"
       label="Max Colors in Palette"
-      v-model="quantizationOptions.reducedPaletteColors"
+      v-model="quantizationOptions.colors"
       :integer="true"
       :step="1"
     />
     <SelectInput
       v-show="quantizationOptions.useQuantization"
-      :defaultValue="qo.REDUCED_PALETTE_COLOR_DISTANCE_FORMULA_DEFAULT"
+      :defaultValue="qo.COLOR_DISTANCE_FORMULA_DEFAULT"
       :options="qo.ColorDistanceFormulaHelper"
-      label="Color Distance Formula for Palette Quantization"
-      v-model="quantizationOptions.reducedPaletteColorDistanceFormula"
+      label="Color Distance Formula"
+      v-model="quantizationOptions.colorDist"
     />
     <SelectInput
       v-show="quantizationOptions.useQuantization"
-      :defaultValue="qo.REDUCED_PALETTE_QUANTIZATION_DEFAULT"
-      :options="qo.PaletteQuantizationHelper"
-      label="Palette Quantization Method"
-      v-model="quantizationOptions.reducedPaletteQuantization"
-    />
-    <SelectInput
-      v-show="quantizationOptions.useQuantization"
-      :defaultValue="qo.IMAGE_COLOR_DISTANCE_FORMULA_DEFAULT"
-      :options="qo.ColorDistanceFormulaHelper"
-      label="Color Distance Formula for Image Quantization"
-      v-model="quantizationOptions.imageColorDistanceFormula"
-    />
-    <SelectInput
-      v-show="quantizationOptions.useQuantization"
-      :defaultValue="qo.IMAGE_QUANTIZATION_DEFAULT"
-      :options="qo.ImageQuantizationHelper"
-      label="Image Quantization Method"
-      v-model="quantizationOptions.imageQuantization"
+      :defaultValue="qo.DITHERING_KERNEL_DEFAULT"
+      :options="qo.DitheringKernelHelper"
+      label="Dithering Method"
+      v-model="quantizationOptions.dithKern"
     />
   </div>
 </template>
