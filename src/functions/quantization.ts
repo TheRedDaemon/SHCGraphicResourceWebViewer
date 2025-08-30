@@ -52,7 +52,6 @@ const WORKER_HANDLER = (function () {
           );
           this.terminateQuantizationWorker();
         };
-        onProgress?.("Sending data.");
         current_worker.postMessage(
           {
             width,

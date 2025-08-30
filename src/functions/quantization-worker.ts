@@ -35,7 +35,6 @@ function quantizeImage(
     result[i] = reducedPaletteImageDataBuffer[i];
   }
 
-  sendProgressMessage("Returning data.");
   sendResultMessage(new Uint8ClampedArray(result.buffer));
 }
 
