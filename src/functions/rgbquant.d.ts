@@ -22,6 +22,9 @@ declare module "rgbquant" {
 
   export type ColorDistanceFormula = "euclidean" | "manhattan";
 
+  export type ReduceReturnImageData = 1;
+  export type ReduceReturnImageIndexes = 2;
+
   export default class RgbQuant {
     constructor(opt?: QuantizationOptions);
 
@@ -38,11 +41,8 @@ declare module "rgbquant" {
      * @param tuples if true will return an array of [r,g,b] triplets, otherwise a Uint8Array is returned by default.
      * @param noSort if true will disable palette sorting by hue/luminance and leaves it ordered from highest to lowest color occurrence counts.
      */
-    palette(
-      tuples: false = false,
-      noSort: boolean = false,
-    ): Uint8Array<ArrayBuffer>;
-    palette(tuples: true, noSort: boolean = false): [number, number, number][];
+    palette(tuples?: false, noSort?: boolean): Uint8Array<ArrayBuffer>;
+    palette(tuples: true, noSort?: boolean): [number, number, number][];
 
     /**
      * Quantizes an image.
@@ -53,13 +53,13 @@ declare module "rgbquant" {
      */
     reduce(
       image: ImagePixelData,
-      retType: 1 | 2 = 1,
+      retType?: ReduceReturnImageData,
       dithKern?: DitheringKernel,
       dithSerp?: boolean,
     ): Uint8Array<ArrayBuffer>;
     reduce(
-      image: ArrayLike<number>,
-      retType: 2,
+      image: ImagePixelData,
+      retType: ReduceReturnImageIndexes,
       dithKern?: DitheringKernel,
       dithSerp?: boolean,
     ): number[];

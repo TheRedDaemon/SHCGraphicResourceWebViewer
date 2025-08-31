@@ -3,90 +3,118 @@ import { reduceColorDepthOfRgba8888ToArgb1555 } from "zig-src/color_depth_conver
 
 // check out other library (RGB Quant?), maybe they will be more memory friendly
 
-const WORKER_HANDLER = (function () {
-  let current_worker: Worker | null = null;
-  let resolvePromise: ((value: Uint8ClampedArray<ArrayBuffer>) => void) | null =
-    null;
-  let rejectPromise: ((reason?: Error) => void) | null = null;
+class QuantizationWorker {
+  #worker: Worker;
+  #workerTerminated = false;
 
-  return {
-    async runQuantizationInWorker(
-      width: number,
-      consumedOriginalImageDataArray: Uint8ClampedArray<ArrayBuffer>,
-      consumedReducedPaletteImageDataArray: Uint8ClampedArray<ArrayBuffer>,
-      quantizationOptions: QuantizationOptions,
-      onProgress?: (progress: string) => void,
-    ): Promise<Uint8ClampedArray<ArrayBuffer>> {
-      if (this.isWorkerRunning()) {
-        throw new Error("Quantization worker already running.");
+  #resolvePromise: ((value: unknown) => void) | null = null;
+  #rejectPromise: ((reason?: Error) => void) | null = null;
+
+  constructor() {
+    this.#worker = new Worker(
+      new URL("./quantization-worker.ts", import.meta.url),
+      {
+        type: "module",
+      },
+    );
+    this.#worker.onmessage = (event) => {
+      if (!this.#resolvePromise) {
+        throw new Error("Worker gave message without running promise.");
       }
-      const promise: Promise<Uint8ClampedArray<ArrayBuffer>> = new Promise(
-        (resolve, reject) => {
-          resolvePromise = resolve;
-          rejectPromise = reject;
-        },
+      const message = event.data;
+      this.#resolvePromise(message);
+      this.#resolvePromise = null;
+      this.#rejectPromise = null;
+    };
+    this.#worker.onerror = (event) => {
+      if (!this.#rejectPromise) {
+        throw new Error("Worker gave error without running promise.");
+      }
+      this.#rejectPromise(
+        new Error(`Quantization worker error: ${event.message}`),
       );
-      try {
-        current_worker = new Worker(
-          new URL("./quantization-worker.ts", import.meta.url),
-          {
-            type: "module",
-          },
-        );
-        current_worker.onmessage = (event) => {
-          const message = event.data;
-          if (message.type === "progress") {
-            onProgress?.(message.data);
-            return;
-          }
-          if (message.type === "result") {
-            resolvePromise!(message.data);
-          } else {
-            rejectPromise!(new Error("Unknown quantization worker message"));
-          }
-          this.terminateQuantizationWorker();
-        };
-        current_worker.onerror = (event) => {
-          rejectPromise!(
-            new Error(`Quantization worker error: ${event.message}`),
-          );
-          this.terminateQuantizationWorker();
-        };
-        current_worker.postMessage(
-          {
-            width,
-            originalImageArray: consumedOriginalImageDataArray,
-            reducedPaletteImageArray: consumedReducedPaletteImageDataArray,
-            options: quantizationOptions,
-          },
-          [
-            consumedOriginalImageDataArray.buffer,
-            consumedReducedPaletteImageDataArray.buffer,
-          ],
-        );
-      } catch (ex) {
-        this.terminateQuantizationWorker();
-        throw ex;
-      }
+      this.#resolvePromise = null;
+      this.#rejectPromise = null;
+    };
+  }
 
-      return promise;
-    },
-    isWorkerRunning() {
-      return current_worker !== null;
-    },
-    terminateQuantizationWorker() {
-      if (current_worker) {
-        current_worker.terminate();
-        current_worker = null;
-      }
-      if (rejectPromise) {
-        rejectPromise(new Error("Quantization worker terminated."));
-      }
-      resolvePromise = null;
-      rejectPromise = null;
-    },
-  };
-})();
+  init(quantizationOptions: QuantizationOptions): Promise<void> {
+    this.#validateWorker();
+    const promise = this.#initPromise<void>();
+    this.#worker.postMessage({ type: "init", options: quantizationOptions });
+    return promise;
+  }
+
+  // returns alpha channel of consumed image
+  sample(image: ImageData): Promise<Uint8ClampedArray<ArrayBuffer>> {
+    this.#validateWorker();
+    const promise = this.#initPromise<Uint8ClampedArray<ArrayBuffer>>();
+    this.#worker.postMessage({ type: "sample", image: image }, [
+      image.data.buffer,
+    ]);
+    return promise;
+  }
+
+  // TODO needs research what actually is contained in this array
+  palette(): Promise<Uint8ClampedArray<ArrayBuffer>> {
+    this.#validateWorker();
+    const promise = this.#initPromise<Uint8ClampedArray<ArrayBuffer>>();
+    this.#worker.postMessage({ type: "palette" });
+    return promise;
+  }
+
+  reduceToImage(
+    image: ImageData,
+    alpha: Uint8ClampedArray<ArrayBuffer>,
+  ): Promise<Uint8ClampedArray<ArrayBuffer>> {
+    this.#validateWorker();
+    const promise = this.#initPromise<Uint8ClampedArray<ArrayBuffer>>();
+    this.#worker.postMessage(
+      { type: "reduce", image: image, alpha: alpha, returnType: 1 },
+      [image.data.buffer, alpha.buffer],
+    );
+    return promise;
+  }
+
+  reduceToIndexes(image: ImageData): Promise<Uint32Array<ArrayBuffer>> {
+    this.#validateWorker();
+    const promise = this.#initPromise<Uint32Array<ArrayBuffer>>();
+    this.#worker.postMessage({ type: "reduce", image: image, returnType: 2 }, [
+      image.data.buffer,
+    ]);
+    return promise;
+  }
+
+  isWorkerActive() {
+    this.#validateWorker();
+    return !!this.#resolvePromise;
+  }
+
+  terminateQuantizationWorker() {
+    this.#validateWorker();
+    this.#workerTerminated = true;
+    if (this.#rejectPromise) {
+      this.#rejectPromise(new Error("Quantization worker terminated."));
+    }
+    this.#worker.terminate();
+  }
+
+  #validateWorker() {
+    if (this.#workerTerminated) {
+      throw new Error("Quantization worker was shut down.");
+    }
+  }
+
+  #initPromise<T>() {
+    if (this.isWorkerActive()) {
+      throw new Error("Quantization worker already running.");
+    }
+    return new Promise<T>((resolve, reject) => {
+      this.#resolvePromise = resolve as (value: unknown) => void;
+      this.#rejectPromise = reject;
+    });
+  }
+}
 
 function generateImageWithReducedPalette(
   image: ImageData,
@@ -110,25 +138,31 @@ export async function quantizeImageTo16Colors(
     return imageWithReducedPalette;
   }
 
-  // TODO?: Start seems to be slow, although, that could be the initialization of the worker
+  let resultArray = null;
+
   onProgress?.("Starting worker.");
-  const resultArray = await WORKER_HANDLER.runQuantizationInWorker(
-    imageWithReducedPalette.width,
-    new Uint8ClampedArray(image.data), // copy, since it is consumed
-    imageWithReducedPalette.data,
-    quantizationOptions,
-    onProgress,
-  );
+  const quantizationWorker = new QuantizationWorker();
+  try {
+    await quantizationWorker.init(quantizationOptions);
+
+    onProgress?.("Building palette.");
+    const alpha = await quantizationWorker.sample(imageWithReducedPalette);
+    await quantizationWorker.palette();
+
+    onProgress?.("Quantizing image.");
+    resultArray = await quantizationWorker.reduceToImage(
+      new ImageData(
+        new Uint8ClampedArray(image.data), // copy, since it is consumed
+        image.width,
+        image.height,
+      ),
+      alpha,
+    );
+  } finally {
+    onProgress?.("Shut down worker.");
+    quantizationWorker.terminateQuantizationWorker();
+  }
 
   onProgress?.("Creating image.");
   return new ImageData(resultArray, image.width, image.height);
-}
-
-export function isQuantizationRunning(): boolean {
-  // for the moment ok, since the other call actually happens in the sync part
-  return WORKER_HANDLER.isWorkerRunning();
-}
-
-export function terminateQuantization() {
-  WORKER_HANDLER.terminateQuantizationWorker();
 }
