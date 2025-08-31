@@ -23,7 +23,7 @@ function sample(image: ImageData) {
   quantizer.sample(image);
   const alpha = new Uint8ClampedArray(image.width * image.height);
   for (let i = 0; i < alpha.length; ++i) {
-    alpha[i] = image.data[3 + i * 4];
+    alpha[i] = image.data[3 + i * 4]!;
   }
   postMessage(alpha, [alpha.buffer]);
 }
@@ -53,7 +53,7 @@ function reduce<T extends ReduceReturnImageData | ReduceReturnImageIndexes>(
         throw new Error("Alpha channel does not match image size.");
       }
       for (let i = 0; i < alpha.length; ++i) {
-        result[3 + i * 4] = alpha[i];
+        result[3 + i * 4] = alpha[i]!;
       }
     }
     postMessage(result, [result.buffer]);

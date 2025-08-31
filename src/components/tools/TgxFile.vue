@@ -34,8 +34,15 @@ async function uploadFile(
   const file = target.files?.[0];
   if (file) {
     const imageData = await createImageDataFromFile(file);
+    const [promise, abortController] = quantizeImageTo16Colors(
+      imageData,
+      quantizationOptions,
+      onProgress,
+    );
+    // promise.catch(() => {});
+    // abortController.abort();
     const simpleImageData = SimpleImageData.fromImage(
-      await quantizeImageTo16Colors(imageData, quantizationOptions, onProgress),
+      await promise,
       quantizationOptions,
     );
     const canvas = imageCanvas.value!;

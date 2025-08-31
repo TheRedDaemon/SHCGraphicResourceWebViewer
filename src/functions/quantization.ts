@@ -91,7 +91,10 @@ class QuantizationWorker {
   }
 
   terminateQuantizationWorker() {
-    this.#validateWorker();
+    if (this.#workerTerminated) {
+      return;
+    }
+
     this.#workerTerminated = true;
     if (this.#rejectPromise) {
       this.#rejectPromise(new Error("Quantization worker terminated."));
@@ -125,11 +128,15 @@ function generateImageWithReducedPalette(
   return new ImageData(copiedBytesArray, image.width, image.height);
 }
 
-export async function quantizeImageTo16Colors(
+async function internalQuantizeImageTo16Colors(
   image: ImageData,
   quantizationOptions: QuantizationOptions,
+  signal: AbortSignal,
   onProgress?: (progress: string) => void,
 ): Promise<ImageData> {
+  // no abort needed here yet, since the logic is synchronous here
+  // should an async call happen earlier, this needs to be addressed
+
   const imageWithReducedPalette = generateImageWithReducedPalette(
     image,
     quantizationOptions.alphaThreshold,
@@ -142,6 +149,7 @@ export async function quantizeImageTo16Colors(
 
   onProgress?.("Starting worker.");
   const quantizationWorker = new QuantizationWorker();
+  signal.onabort = () => quantizationWorker.terminateQuantizationWorker();
   try {
     await quantizationWorker.init(quantizationOptions);
 
@@ -159,10 +167,26 @@ export async function quantizeImageTo16Colors(
       alpha,
     );
   } finally {
+    signal.onabort = null;
     onProgress?.("Shut down worker.");
     quantizationWorker.terminateQuantizationWorker();
   }
 
   onProgress?.("Creating image.");
   return new ImageData(resultArray, image.width, image.height);
+}
+
+export function quantizeImageTo16Colors(
+  image: ImageData,
+  quantizationOptions: QuantizationOptions,
+  onProgress?: (progress: string) => void,
+): [Promise<ImageData>, AbortController] {
+  const controller = new AbortController();
+  const promise = internalQuantizeImageTo16Colors(
+    image,
+    quantizationOptions,
+    controller.signal,
+    onProgress,
+  );
+  return [promise, controller];
 }
