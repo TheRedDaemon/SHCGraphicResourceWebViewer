@@ -1,5 +1,5 @@
 import { type QuantizationOptions } from "src/objects/options/quantization-options";
-import { reduceColorDepthOfRgba8888ToArgb1555 } from "zig-src/color_depth_converter.zig";
+import { reduceColorDepthOfRgba8888ToArgb1555 } from "src/functions/color-depth-converter";
 
 // check out other library (RGB Quant?), maybe they will be more memory friendly
 

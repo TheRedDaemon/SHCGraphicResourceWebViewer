@@ -14,14 +14,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "src/*": ["./src/*"],
-      "zig-src/*": ["./zig-src/*"]
+      "src/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "zig-src/**/*.d.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }
