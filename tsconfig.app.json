@@ -12,7 +12,6 @@
     "noUncheckedSideEffectImports": true,
     "allowArbitraryExtensions": true,
 
-    "baseUrl": ".",
     "paths": {
       "src/*": ["./src/*"]
     }
