@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// TODO: the quantization takes a lot of memory for large images,
-//   too much actually for handling the animation tiles, so either this needs fixing, or an alternative solution (individual pictures?, lwo level API?)
-//   - Sync seems to consume less memory and seems to be more "performant" overall
-//   - use worker? -> Still memory issue, but could use sync calls. Would need basically all transform related sources to be moved to the worker
-//     - Vue Vite and Web Workers check needed
 // TODO: any solution for a global exception handler for vue?
 
 import FixedView from "src/components/general/CanvasView.vue";

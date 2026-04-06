@@ -23,9 +23,33 @@
 
 # Force batch scripts to always use CRLF line endings so that if a repo is accessed
 # in Windows via a file share from Linux, the scripts will work.
-*.{cmd,[cC][mM][dD]} text eol=crlf
-*.{bat,[bB][aA][tT]} text eol=crlf
+# These used a glob pattern originally, but apparently this actually does not work on Windows.
+*.bat text eol=crlf
+*.bAt text eol=crlf
+*.baT text eol=crlf
+*.bAT text eol=crlf
+*.Bat text eol=crlf
+*.BAt text eol=crlf
+*.BaT text eol=crlf
+*.BAT text eol=crlf
+
+*.cmd text eol=crlf
+*.cMd text eol=crlf
+*.cmD text eol=crlf
+*.cMD text eol=crlf
+*.Cmd text eol=crlf
+*.CMd text eol=crlf
+*.CmD text eol=crlf
+*.CMD text eol=crlf
+
+*.ps1 text eol=crlf
+*.Ps1 text eol=crlf
+*.pS1 text eol=crlf
+*.PS1 text eol=crlf
 
 # Force bash scripts to always use LF line endings so that if a repo is accessed
 # in Unix via a file share from Windows, the scripts will work.
 *.sh text eol=lf
+*.sH text eol=lf
+*.Sh text eol=lf
+*.SH text eol=lf

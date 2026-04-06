@@ -1,0 +1,30 @@
+{
+  "debug.allowBreakpointsEverywhere": true,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "editor.indentSize": "tabSize",
+  "editor.formatOnSave": true,
+  "editor.semanticTokenColorCustomizations": {
+    "rules": {
+      "*.deprecated": {
+        "strikethrough": true
+      }
+    }
+  },
+  "files.insertFinalNewline": true,
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "tsconfig.json": "tsconfig.*.json, env.d.ts",
+    "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*",
+    "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "javascript.preferences.importModuleSpecifier": "non-relative"
+}

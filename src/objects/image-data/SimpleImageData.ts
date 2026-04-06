@@ -2,8 +2,8 @@ import type SHCImageData from "src/objects/image-data/SHCImageData";
 import {
   convertArgb1555ToRgba8888,
   reduceColorDepthOfRgba8888ToArgb1555,
-} from "zig-src/color_depth_converter.zig";
-import { convertTgxToArgb } from "zig-src/tgx_coder.zig";
+} from "src/functions/color-depth-converter";
+import { convertTgxToArgb } from "src/functions/tgx-coder";
 import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
 import { type QuantizationOptions } from "src/objects/options/quantization-options";
 
@@ -38,8 +38,8 @@ export default class SimpleImageData implements SHCImageData {
       tgxData,
       options.pixelRepeatThreshold,
       options.paddingAlignment,
-    ).typedArray;
-    const rgba8888Data = convertArgb1555ToRgba8888(argb1555Data).typedArray;
+    );
+    const rgba8888Data = convertArgb1555ToRgba8888(argb1555Data);
     return new SimpleImageData(new ImageData(rgba8888Data, width, height));
   }
 
