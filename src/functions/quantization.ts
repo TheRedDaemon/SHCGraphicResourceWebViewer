@@ -1,5 +1,4 @@
 import { type QuantizationOptions } from "src/objects/options/quantization-options";
-import { reduceColorDepthOfRgba8888ToArgb1555 } from "src/functions/color-depth-converter";
 
 // check out other library (RGB Quant?), maybe they will be more memory friendly
 
@@ -119,34 +118,12 @@ class QuantizationWorker {
   }
 }
 
-function generateImageWithReducedPalette(
-  image: ImageData,
-  alphaThreshold: number,
-): ImageData {
-  const copiedBytesArray = new Uint8ClampedArray(image.data);
-  reduceColorDepthOfRgba8888ToArgb1555(copiedBytesArray, alphaThreshold);
-  return new ImageData(copiedBytesArray, image.width, image.height);
-}
-
-async function internalQuantizeImageTo16Colors(
+async function internalQuantizeImage(
   image: ImageData,
   quantizationOptions: QuantizationOptions,
   signal: AbortSignal,
   onProgress?: (progress: string) => void,
 ): Promise<ImageData> {
-  // no abort needed here yet, since the logic is synchronous here
-  // should an async call happen earlier, this needs to be addressed
-
-  const imageWithReducedPalette = generateImageWithReducedPalette(
-    image,
-    quantizationOptions.alphaThreshold,
-  );
-  if (!quantizationOptions.useQuantization) {
-    return imageWithReducedPalette;
-  }
-
-  let resultArray = null;
-
   onProgress?.("Starting worker.");
   const quantizationWorker = new QuantizationWorker();
   signal.onabort = () => quantizationWorker.terminateQuantizationWorker();
@@ -154,11 +131,16 @@ async function internalQuantizeImageTo16Colors(
     await quantizationWorker.init(quantizationOptions);
 
     onProgress?.("Building palette.");
-    const alpha = await quantizationWorker.sample(imageWithReducedPalette);
+    const copiedImageData = new ImageData(
+      new Uint8ClampedArray(image.data),
+      image.width,
+      image.height,
+    );
+    const alpha = await quantizationWorker.sample(copiedImageData);
     await quantizationWorker.palette();
 
     onProgress?.("Quantizing image.");
-    resultArray = await quantizationWorker.reduceToImage(
+    const resultArray = await quantizationWorker.reduceToImage(
       new ImageData(
         new Uint8ClampedArray(image.data), // copy, since it is consumed
         image.width,
@@ -166,23 +148,23 @@ async function internalQuantizeImageTo16Colors(
       ),
       alpha,
     );
+
+    onProgress?.("Completing image.");
+    return new ImageData(resultArray, image.width, image.height);
   } finally {
     signal.onabort = null;
     onProgress?.("Shut down worker.");
     quantizationWorker.terminateQuantizationWorker();
   }
-
-  onProgress?.("Creating image.");
-  return new ImageData(resultArray, image.width, image.height);
 }
 
-export function quantizeImageTo16Colors(
+export function quantizeImage(
   image: ImageData,
   quantizationOptions: QuantizationOptions,
   onProgress?: (progress: string) => void,
 ): [Promise<ImageData>, AbortController] {
   const controller = new AbortController();
-  const promise = internalQuantizeImageTo16Colors(
+  const promise = internalQuantizeImage(
     image,
     quantizationOptions,
     controller.signal,

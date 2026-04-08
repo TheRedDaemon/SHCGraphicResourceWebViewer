@@ -3,43 +3,51 @@
 
 import FixedView from "src/components/general/CanvasView.vue";
 import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
-import { createImageDataFromFile } from "src/functions/file-import";
-import { quantizeImageTo16Colors } from "src/functions/quantization";
+import UploadOptions from "src/components/general/UploadOptions.vue";
+import { extractImageFromFile } from "src/functions/file-import";
+import { quantizeImage } from "src/functions/quantization";
 import SimpleImageData from "src/objects/image-data/SimpleImageData";
-import { useTemplateRef } from "vue";
+import { useTemplateRef, ref } from "vue";
 import { createDefaultTgxCoderOptions } from "src/objects/options/tgx-coder-options";
 import QuantizationOptions from "src/components/general/QuantizationOptions.vue";
 import {
   type QuantizationOptions as QuantizationOptionsStruct,
   createDefaultQuantizationOptions,
 } from "src/objects/options/quantization-options";
+import { createDefaultUploadOptions } from "src/objects/options/upload-options";
+import CheckboxInput from "src/components/general/CheckboxInput.vue";
 
 // only to hold data
 const tgxCoderOptions = createDefaultTgxCoderOptions();
 const quantizationOptions = createDefaultQuantizationOptions();
+const uploadOptions = createDefaultUploadOptions();
+const useQuantization = ref(false);
 
 const imageCanvas = useTemplateRef("image-canvas");
 
 async function uploadFile(
   event: Event,
   quantizationOptions: QuantizationOptionsStruct,
+  shouldQuantize: boolean,
   onProgress?: (progress: string) => void,
 ) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
-    const imageData = await createImageDataFromFile(file);
-    const [promise, abortController] = quantizeImageTo16Colors(
-      imageData,
-      quantizationOptions,
-      onProgress,
-    );
-    // promise.catch(() => {});
-    // abortController.abort();
-    const simpleImageData = SimpleImageData.fromImage(
-      await promise,
-      quantizationOptions,
-    );
+    const imageData = await extractImageFromFile(file, uploadOptions);
+    let simpleImageData;
+    if (shouldQuantize) {
+      const [promise, abortController] = quantizeImage(
+        imageData,
+        quantizationOptions,
+        onProgress,
+      );
+      // promise.catch(() => {});
+      // abortController.abort();
+      simpleImageData = SimpleImageData.fromImage(await promise);
+    } else {
+      simpleImageData = SimpleImageData.fromImage(imageData);
+    }
     const canvas = imageCanvas.value!;
     canvas.width = simpleImageData.width;
     canvas.height = simpleImageData.height;
@@ -60,10 +68,22 @@ async function uploadFile(
         type="file"
         accept="image/*,.tgx"
         @change="
-          (ev) => uploadFile(ev, { ...quantizationOptions }, console.log)
+          (ev) =>
+            uploadFile(
+              ev,
+              { ...quantizationOptions },
+              useQuantization,
+              console.log,
+            )
         "
       />
       <button>Export</button>
+      <CheckboxInput
+        label="Use Quantization"
+        :defaultValue="false"
+        v-model="useQuantization"
+      />
+      <UploadOptions v-model="uploadOptions" />
       <QuantizationOptions v-model="quantizationOptions" />
       <TgxCoderOptions v-model="tgxCoderOptions" />
     </div>

@@ -30,9 +30,6 @@ export const HistogramMethodHelper: Record<string, 1 | 2> = {
 
 // taken from RgbQuant.js
 export type QuantizationOptions = {
-  alphaThreshold: number;
-  useQuantization: boolean;
-
   colors: number; // desired palette size
   method: 1 | 2; // histogram method, 2: min-population threshold within subregions; 1: global top-population
   boxSize: [number, number]; // subregion dims (if method = 2)
@@ -57,12 +54,6 @@ export type QuantizationOptions = {
 };
 
 const NUMBER_OF_16_BIT_COLORS = 2 ** 16;
-
-export const ALPHA_THRESHOLD_DEFAULT = 127;
-export const ALPHA_THRESHOLD_MAX = 255;
-export const ALPHA_THRESHOLD_MIN = 0;
-
-export const USE_QUANTIZATION_DEFAULT = false;
 
 export const COLORS_DEFAULT = 256;
 export const COLORS_MIN = 1;
@@ -130,9 +121,6 @@ export const LUM_GROUPS_MIN = 1;
 
 export function createDefaultQuantizationOptions(): QuantizationOptions {
   return {
-    alphaThreshold: ALPHA_THRESHOLD_DEFAULT,
-    useQuantization: USE_QUANTIZATION_DEFAULT,
-
     colors: COLORS_DEFAULT,
     method: HISTOGRAM_METHOD_DEFAULT,
     boxSize: [BOX_SIZE_DIMENSION_DEFAULT, BOX_SIZE_DIMENSION_DEFAULT],

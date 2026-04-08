@@ -1,11 +1,7 @@
 import type SHCImageData from "src/objects/image-data/SHCImageData";
-import {
-  convertArgb1555ToRgba8888,
-  reduceColorDepthOfRgba8888ToArgb1555,
-} from "src/functions/color-depth-converter";
+import { convertArgb1555ToRgba8888 } from "src/functions/color-depth-converter";
 import { convertTgxToArgb } from "src/functions/tgx-coder";
 import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
-import { type QuantizationOptions } from "src/objects/options/quantization-options";
 
 export default class SimpleImageData implements SHCImageData {
   #imageData: ImageData;
@@ -43,19 +39,11 @@ export default class SimpleImageData implements SHCImageData {
     return new SimpleImageData(new ImageData(rgba8888Data, width, height));
   }
 
-  static fromImage(
-    image: ImageData,
-    options: QuantizationOptions,
-  ): SimpleImageData {
+  static fromImage(image: ImageData): SimpleImageData {
     const imageData = new ImageData(
       new Uint8ClampedArray(image.data),
       image.width,
       image.height,
-    );
-    // ensure image is reduced to 16bit colors
-    reduceColorDepthOfRgba8888ToArgb1555(
-      imageData.data,
-      options.alphaThreshold,
     );
     return new SimpleImageData(imageData);
   }

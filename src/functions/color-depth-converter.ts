@@ -24,7 +24,6 @@ export function reduceColorDepthOfRgba8888ToArgb1555(
 
 export function convertRgba8888ToArgb1555(
   input: Uint8ClampedArray,
-  alphaThreshold: number,
 ): Uint16Array<ArrayBuffer> {
   if (input.length % 4 !== 0) {
     throw new Error("Invalid input size: must be multiple of 4");
@@ -37,7 +36,9 @@ export function convertRgba8888ToArgb1555(
     const r = input[i * 4]! >> 3;
     const g = input[i * 4 + 1]! >> 3;
     const b = input[i * 4 + 2]! >> 3;
-    const a = input[i * 4 + 3]! > alphaThreshold ? 1 : 0;
+
+    // hardcoded alpha threshold, since not properly split values should never reach here
+    const a = input[i * 4 + 3]! > 127 ? 1 : 0;
 
     // Pack into ARGB1555: a(1) r(5) g(5) b(5) = 16 bits
     output[i] = (a << 15) | (r << 10) | (g << 5) | b;
