@@ -2,48 +2,50 @@
 // TODO: any solution for a global exception handler for vue?
 
 import FixedView from "src/components/general/CanvasView.vue";
-import TgxCoderOptions from "src/components/general/TgxCoderOptions.vue";
-import UploadOptions from "src/components/general/UploadOptions.vue";
+import NumberInput from "src/components/general/NumberInput.vue";
 import { extractImageFromFile } from "src/functions/file-import";
 import { quantizeImage } from "src/functions/quantization";
 import SimpleImageData from "src/objects/image-data/SimpleImageData";
 import { useTemplateRef, ref } from "vue";
-import { createDefaultTgxCoderOptions } from "src/objects/options/tgx-coder-options";
-import QuantizationOptions from "src/components/general/QuantizationOptions.vue";
-import {
-  type QuantizationOptions as QuantizationOptionsStruct,
-  createDefaultQuantizationOptions,
-} from "src/objects/options/quantization-options";
-import { createDefaultUploadOptions } from "src/objects/options/upload-options";
 import CheckboxInput from "src/components/general/CheckboxInput.vue";
+import { uploadOptions, quantizationOptions } from "src/storage/option-storage";
+import {
+  COLORS_DEFAULT,
+  COLORS_MIN,
+  type QuantizationOptions,
+} from "src/objects/options/quantization-options";
 
-// only to hold data
-const tgxCoderOptions = createDefaultTgxCoderOptions();
-const quantizationOptions = createDefaultQuantizationOptions();
-const uploadOptions = createDefaultUploadOptions();
+const QUANTIZATION_MAX_COLORS = 256; // Reduced to 256, to avoid endless computation
+
 const useQuantization = ref(false);
+const numberOfColorsOverride = ref<number>(COLORS_DEFAULT);
 
 const imageCanvas = useTemplateRef("image-canvas");
 
 async function uploadFile(
   event: Event,
-  quantizationOptions: QuantizationOptionsStruct,
   shouldQuantize: boolean,
   onProgress?: (progress: string) => void,
 ) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
-    const imageData = await extractImageFromFile(file, uploadOptions);
+    const imageData = await extractImageFromFile(file, uploadOptions.read());
     let simpleImageData;
     if (shouldQuantize) {
-      const [promise, abortController] = quantizeImage(
+      const currentQuantizationOptions = quantizationOptions.read();
+
+      // Override number of colors
+      const finalQuantizationOptions: QuantizationOptions = {
+        ...currentQuantizationOptions,
+        colors: numberOfColorsOverride.value,
+      };
+
+      const [promise] = quantizeImage(
         imageData,
-        quantizationOptions,
+        finalQuantizationOptions,
         onProgress,
       );
-      // promise.catch(() => {});
-      // abortController.abort();
       simpleImageData = SimpleImageData.fromImage(await promise);
     } else {
       simpleImageData = SimpleImageData.fromImage(imageData);
@@ -67,15 +69,7 @@ async function uploadFile(
       <input
         type="file"
         accept="image/*,.tgx"
-        @change="
-          (ev) =>
-            uploadFile(
-              ev,
-              { ...quantizationOptions },
-              useQuantization,
-              console.log,
-            )
-        "
+        @change="(ev) => uploadFile(ev, useQuantization, console.log)"
       />
       <button>Export</button>
       <CheckboxInput
@@ -83,9 +77,15 @@ async function uploadFile(
         :defaultValue="false"
         v-model="useQuantization"
       />
-      <UploadOptions v-model="uploadOptions" />
-      <QuantizationOptions v-model="quantizationOptions" />
-      <TgxCoderOptions v-model="tgxCoderOptions" />
+      <NumberInput
+        v-model="numberOfColorsOverride"
+        label="Number of Colors Override"
+        :min="COLORS_MIN"
+        :max="QUANTIZATION_MAX_COLORS"
+        :defaultValue="COLORS_DEFAULT"
+        :integer="true"
+        :step="1"
+      />
     </div>
     <div class="canvas">
       <FixedView>

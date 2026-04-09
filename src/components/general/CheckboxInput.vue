@@ -4,15 +4,15 @@ interface Props {
   label: string;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const model = defineModel<boolean>({ required: true });
 </script>
 
 <template>
   <label>
-    <span>{{ label }}</span>
+    <span>{{ props.label }}</span>
     <input v-model="model" type="checkbox" />
-    <button @click="model = defaultValue">&#8630;</button>
+    <button @click="model = props.defaultValue">&#8630;</button>
   </label>
 </template>

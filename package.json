@@ -12,8 +12,7 @@
   },
   "dependencies": {
     "rgbquant": "1.1.2",
-    "vue": "3.5.32",
-    "pinia": "3.0.4"
+    "vue": "3.5.32"
   },
   "devDependencies": {
     "@types/node": "25.5.2",

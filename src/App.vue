@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import TgxFile from "src/components/tools/TgxFile.vue";
+import TgxTab from "src/components/tabs/TgxTab.vue";
+import OptionsTab from "src/components/tabs/OptionsTab.vue";
 import { ref, computed, type Component } from "vue";
 
 const routes: Record<string, [string, Component | null]> = {
-  "#/tgx": ["Tgx File", TgxFile],
+  "#/tgx": ["Tgx", TgxTab],
+  "#/options": ["Options", OptionsTab],
   "#/about": ["About", null],
 };
 const currentPath = ref(window.location.hash);
@@ -46,7 +48,6 @@ nav {
 main {
   width: 100%;
   height: 100%;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
   justify-content: center;

@@ -5,23 +5,23 @@ interface Props {
   options: Record<string, T>;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const model = defineModel<T>({ required: true });
 </script>
 
 <template>
   <label>
-    <span>{{ label }}</span>
+    <span>{{ props.label }}</span>
     <select v-model="model">
       <option
-        v-for="[key, value] in Object.entries(options)"
+        v-for="[key, value] in Object.entries(props.options)"
         :key="key"
         :value="value"
       >
         {{ key }}
       </option>
     </select>
-    <button @click="model = defaultValue">&#8630;</button>
+    <button @click="model = props.defaultValue">&#8630;</button>
   </label>
 </template>

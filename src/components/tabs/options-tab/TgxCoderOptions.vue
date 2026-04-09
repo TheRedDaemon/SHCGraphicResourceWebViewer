@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import NumberInput from "src/components/general/NumberInput.vue";
 import * as tco from "src/objects/options/tgx-coder-options";
-import { ref } from "vue";
 
 const model = defineModel<tco.TgxCoderOptions>({ required: true });
-const tgxCoderOptions = ref(model.value);
 </script>
 
 <template>
@@ -15,7 +13,7 @@ const tgxCoderOptions = ref(model.value);
       :max="tco.PIXEL_REPEAT_THRESHOLD_MAX"
       :defaultValue="tco.PIXEL_REPEAT_THRESHOLD_DEFAULT"
       label="Pixel Repeat Threshold"
-      v-model="tgxCoderOptions.pixelRepeatThreshold"
+      v-model="model.pixelRepeatThreshold"
       :integer="true"
       :step="1"
     />
@@ -24,7 +22,7 @@ const tgxCoderOptions = ref(model.value);
       :max="tco.PADDING_ALIGNMENT_MAX"
       :defaultValue="tco.PADDING_ALIGNMENT_DEFAULT"
       label="Padding Alignment"
-      v-model="tgxCoderOptions.paddingAlignment"
+      v-model="model.paddingAlignment"
       :integer="true"
       :step="1"
     />

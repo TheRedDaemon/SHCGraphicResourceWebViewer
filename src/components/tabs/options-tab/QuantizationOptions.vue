@@ -1,36 +1,36 @@
 <script setup lang="ts">
-import NumberInput from "src/components/general/NumberInput.vue";
-import * as uo from "src/objects/options/upload-options";
-import { ref } from "vue";
+import SelectInput from "src/components/general/SelectInput.vue";
+import * as qo from "src/objects/options/quantization-options";
 
-const model = defineModel<uo.UploadOptions>({
+const model = defineModel<qo.QuantizationOptions>({
   required: true,
 });
-const uploadOptions = ref(model.value);
 </script>
 
 <template>
-  <div class="upload-options">
-    <h3>Upload Options</h3>
-    <NumberInput
-      :min="uo.ALPHA_THRESHOLD_MIN"
-      :max="uo.ALPHA_THRESHOLD_MAX"
-      :defaultValue="uo.ALPHA_THRESHOLD_DEFAULT"
-      label="Alpha Threshold"
-      v-model="uploadOptions.alphaThreshold"
-      :integer="true"
-      :step="1"
+  <div class="quantization-options">
+    <h3>Quantization Options</h3>
+    <SelectInput
+      :defaultValue="qo.COLOR_DISTANCE_FORMULA_DEFAULT"
+      :options="qo.ColorDistanceFormulaHelper"
+      label="Color Distance Formula"
+      v-model="model.colorDist"
+    />
+    <SelectInput
+      :defaultValue="qo.DITHERING_KERNEL_DEFAULT"
+      :options="qo.DitheringKernelHelper"
+      label="Dithering Method"
+      v-model="model.dithKern"
     />
   </div>
 </template>
 
 <style scoped>
-.upload-options {
+.quantization-options {
   border: 0.25rem solid chocolate;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-bottom: 1rem;
 
   h3 {
     margin: 0;
