@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // TODO: any solution for a global exception handler for vue?
 
-import FixedView from "src/components/general/CanvasView.vue";
+import ScaleView from "src/components/general/ScaleView.vue";
+import ScaleViewScaler from "src/components/general/ScaleViewScaler.vue";
 import NumberInput from "src/components/general/NumberInput.vue";
 import { extractImageFromFile } from "src/functions/file-import";
 import { quantizeImage } from "src/functions/quantization";
@@ -19,6 +20,7 @@ const QUANTIZATION_MAX_COLORS = 256; // Reduced to 256, to avoid endless computa
 
 const useQuantization = ref(false);
 const numberOfColorsOverride = ref<number>(COLORS_DEFAULT);
+const scaleFactor = ref<number>(1);
 
 const imageCanvas = useTemplateRef("image-canvas");
 
@@ -86,11 +88,12 @@ async function uploadFile(
         :integer="true"
         :step="1"
       />
+      <ScaleViewScaler v-model="scaleFactor" label="Scale Factor" />
     </div>
     <div class="canvas">
-      <FixedView>
-        <canvas ref="image-canvas"></canvas>
-      </FixedView>
+      <ScaleView :scale-factor="scaleFactor">
+        <canvas class="image-canvas" ref="image-canvas"></canvas>
+      </ScaleView>
     </div>
   </div>
 </template>
@@ -120,5 +123,9 @@ async function uploadFile(
 
 button {
   margin: 1rem;
+}
+
+.image-canvas {
+  display: block;
 }
 </style>
