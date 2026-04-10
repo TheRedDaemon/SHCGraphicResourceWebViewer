@@ -1,56 +1,66 @@
 <script setup lang="ts">
 import { ref, watchEffect } from "vue";
-import TgxCoderOptionsComponent from "./options-tab/TgxCoderOptions.vue";
+import ViewOptionsComponent from "./options-tab/ViewOptions.vue";
 import UploadOptionsComponent from "./options-tab/UploadOptions.vue";
 import QuantizationOptionsComponent from "./options-tab/QuantizationOptions.vue";
-import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
-import { type QuantizationOptions } from "src/objects/options/quantization-options";
+import TgxCoderOptionsComponent from "./options-tab/TgxCoderOptions.vue";
+import { type ViewOptions } from "src/objects/options/view-options";
 import { type UploadOptions } from "src/objects/options/upload-options";
+import { type QuantizationOptions } from "src/objects/options/quantization-options";
+import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
 import {
+  viewOptions as viewOptionsStorage,
+  uploadOptions as uploadOptionsStorage,
   quantizationOptions as quantizationOptionsStorage,
   tgxCoderOptions as tgxCoderOptionsStorage,
-  uploadOptions as uploadOptionsStorage,
 } from "src/storage/option-storage";
 
+const localViewOptions = ref<ViewOptions>(viewOptionsStorage.read());
+const localUploadOptions = ref<UploadOptions>(uploadOptionsStorage.read());
 const localQuantizationOptions = ref<QuantizationOptions>(
   quantizationOptionsStorage.read(),
 );
 const localTgxCoderOptions = ref<TgxCoderOptions>(
   tgxCoderOptionsStorage.read(),
 );
-const localUploadOptions = ref<UploadOptions>(uploadOptionsStorage.read());
 
 const hasChanges = ref(false);
 
 watchEffect(() => {
+  const storedViewOptions = viewOptionsStorage.read();
+  const storedUploadOptions = uploadOptionsStorage.read();
   const storedQuantizationOptions = quantizationOptionsStorage.read();
   const storedTgxCoderOptions = tgxCoderOptionsStorage.read();
-  const storedUploadOptions = uploadOptionsStorage.read();
 
   hasChanges.value =
+    JSON.stringify(localViewOptions.value) !==
+      JSON.stringify(storedViewOptions) ||
+    JSON.stringify(localUploadOptions.value) !==
+      JSON.stringify(storedUploadOptions) ||
     JSON.stringify(localQuantizationOptions.value) !==
       JSON.stringify(storedQuantizationOptions) ||
     JSON.stringify(localTgxCoderOptions.value) !==
-      JSON.stringify(storedTgxCoderOptions) ||
-    JSON.stringify(localUploadOptions.value) !==
-      JSON.stringify(storedUploadOptions);
+      JSON.stringify(storedTgxCoderOptions);
 });
 
 function saveAllOptions() {
+  viewOptionsStorage.write(localViewOptions.value);
+  uploadOptionsStorage.write(localUploadOptions.value);
   quantizationOptionsStorage.write(localQuantizationOptions.value);
   tgxCoderOptionsStorage.write(localTgxCoderOptions.value);
-  uploadOptionsStorage.write(localUploadOptions.value);
   hasChanges.value = false;
 }
 
 function resetAllOptions() {
+  viewOptionsStorage.reset();
+  uploadOptionsStorage.reset();
   quantizationOptionsStorage.reset();
   tgxCoderOptionsStorage.reset();
-  uploadOptionsStorage.reset();
 
+  localViewOptions.value = viewOptionsStorage.read();
+  localUploadOptions.value = uploadOptionsStorage.read();
   localQuantizationOptions.value = quantizationOptionsStorage.read();
   localTgxCoderOptions.value = tgxCoderOptionsStorage.read();
-  localUploadOptions.value = uploadOptionsStorage.read();
 
   hasChanges.value = false;
 }
@@ -59,6 +69,7 @@ function resetAllOptions() {
 <template>
   <div class="options">
     <div class="menu">
+      <ViewOptionsComponent v-model="localViewOptions" />
       <UploadOptionsComponent v-model="localUploadOptions" />
       <QuantizationOptionsComponent v-model="localQuantizationOptions" />
       <TgxCoderOptionsComponent v-model="localTgxCoderOptions" />

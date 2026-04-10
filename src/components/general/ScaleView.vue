@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
 
 const scaleFactor = ref<number>(1);
 const mousePosition = ref<{ x: number; y: number } | null>(null);
 const isHovered = ref(false);
+const showScaleIndicator = ref(false);
 
 const contentRef = ref<HTMLElement | null>(null);
 const containerDimensions = ref({ width: 0, height: 0 });
@@ -73,12 +75,76 @@ function handleMouseMove(event: MouseEvent) {
   updateMousePosition(event);
 }
 
+function adjustScrollPositionToScale(newScale: number, oldScale: number) {
+  if (!overflowContainerRef.value) {
+    throw new Error("Invalid state: overflowContainerRef is null");
+  }
+
+  // Store current scroll position
+  const oldScrollLeft = overflowContainerRef.value.scrollLeft;
+  const oldScrollTop = overflowContainerRef.value.scrollTop;
+
+  // Calculate relative position (use mouse position if available, otherwise center)
+  const viewportWidth = overflowContainerRef.value.clientWidth;
+  const viewportHeight = overflowContainerRef.value.clientHeight;
+
+  let newScrollLeft: number;
+  let newScrollTop: number;
+
+  if (mousePosition.value) {
+    // Calculate the content point under the mouse (in original content coordinates)
+    const contentX = (oldScrollLeft + mousePosition.value.x) / oldScale;
+    const contentY = (oldScrollTop + mousePosition.value.y) / oldScale;
+
+    // Calculate new scroll position to keep same content point under mouse
+    newScrollLeft = contentX * newScale - mousePosition.value.x;
+    newScrollTop = contentY * newScale - mousePosition.value.y;
+  } else {
+    // Center zoom when no mouse position
+    const centerX = oldScrollLeft + viewportWidth / 2;
+    const centerY = oldScrollTop + viewportHeight / 2;
+    const scaleRatio = newScale / oldScale;
+    newScrollLeft = centerX * scaleRatio - viewportWidth / 2;
+    newScrollTop = centerY * scaleRatio - viewportHeight / 2;
+  }
+
+  updateDimensions();
+
+  // Wait for DOM update before setting scroll position
+  nextTick(() => {
+    if (overflowContainerRef.value) {
+      // Set new scroll position
+      overflowContainerRef.value.scrollLeft = newScrollLeft;
+      overflowContainerRef.value.scrollTop = newScrollTop;
+    }
+  });
+}
+
+let scaleIndicatorTimeout: number | null = null;
+
+function triggerScaleIndicator() {
+  const options = viewOptionsStorage.read();
+  if (!options.showScaleIndicator) {
+    return;
+  }
+  showScaleIndicator.value = true;
+  if (scaleIndicatorTimeout !== null) {
+    clearTimeout(scaleIndicatorTimeout);
+  }
+  scaleIndicatorTimeout = window.setTimeout(() => {
+    showScaleIndicator.value = false;
+  }, 1500);
+}
+
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
+  if (scaleIndicatorTimeout !== null) {
+    clearTimeout(scaleIndicatorTimeout);
+  }
 });
 
 // only creates observer, which fires directly
@@ -96,57 +162,16 @@ watchEffect((onCleanup) => {
 watch(
   () => scaleFactor.value,
   (newScale, oldScale) => {
-    if (!overflowContainerRef.value) {
-      throw new Error("Invalid state: overflowContainerRef is null");
-    }
-
-    // Store current scroll position
-    const oldScrollLeft = overflowContainerRef.value.scrollLeft;
-    const oldScrollTop = overflowContainerRef.value.scrollTop;
-
-    // Calculate relative position (use mouse position if available, otherwise center)
-    const viewportWidth = overflowContainerRef.value.clientWidth;
-    const viewportHeight = overflowContainerRef.value.clientHeight;
-
-    let newScrollLeft: number;
-    let newScrollTop: number;
-
-    if (mousePosition.value) {
-      // Calculate the content point under the mouse (in original content coordinates)
-      const contentX = (oldScrollLeft + mousePosition.value.x) / oldScale;
-      const contentY = (oldScrollTop + mousePosition.value.y) / oldScale;
-
-      // Calculate new scroll position to keep same content point under mouse
-      newScrollLeft = contentX * newScale - mousePosition.value.x;
-      newScrollTop = contentY * newScale - mousePosition.value.y;
-    } else {
-      // Center zoom when no mouse position
-      const centerX = oldScrollLeft + viewportWidth / 2;
-      const centerY = oldScrollTop + viewportHeight / 2;
-      const scaleRatio = newScale / oldScale;
-      newScrollLeft = centerX * scaleRatio - viewportWidth / 2;
-      newScrollTop = centerY * scaleRatio - viewportHeight / 2;
-    }
-
-    updateDimensions();
-
-    // Wait for DOM update before setting scroll position
-    nextTick(() => {
-      if (overflowContainerRef.value) {
-        // Set new scroll position
-        overflowContainerRef.value.scrollLeft = newScrollLeft;
-        overflowContainerRef.value.scrollTop = newScrollTop;
-      }
-    });
+    adjustScrollPositionToScale(newScale, oldScale);
+    triggerScaleIndicator();
   },
 );
 </script>
 
 <template>
   <div class="fixed-view">
-    <div class="mouse-position">
-      Mouse on Frame: {{ mousePosition?.x ?? "N/A" }},
-      {{ mousePosition?.y ?? "N/A" }}
+    <div class="scale-indicator" :class="{ visible: showScaleIndicator }">
+      {{ scaleFactor }}x
     </div>
     <div
       ref="overflowContainerRef"
@@ -199,18 +224,25 @@ watch(
   overflow: auto;
 }
 
-.mouse-position {
+.scale-indicator {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
+  padding: 20px 40px;
+  border-radius: 8px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 48px;
+  font-weight: bold;
   z-index: 10;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.scale-indicator.visible {
+  opacity: 1;
 }
 
 .size-container {

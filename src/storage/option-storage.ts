@@ -11,6 +11,10 @@ import {
   createDefaultUploadOptions,
   type UploadOptions,
 } from "src/objects/options/upload-options";
+import {
+  createDefaultViewOptions,
+  type ViewOptions,
+} from "src/objects/options/view-options";
 
 export const quantizationOptions = new LocalStorageHelper<QuantizationOptions>(
   "quantizationOptions",
@@ -25,4 +29,9 @@ export const tgxCoderOptions = new LocalStorageHelper<TgxCoderOptions>(
 export const uploadOptions = new LocalStorageHelper<UploadOptions>(
   "uploadOptions",
   createDefaultUploadOptions,
+);
+
+export const viewOptions = new LocalStorageHelper<ViewOptions>(
+  "viewOptions",
+  createDefaultViewOptions,
 );
