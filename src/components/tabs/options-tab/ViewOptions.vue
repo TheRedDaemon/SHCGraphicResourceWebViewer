@@ -20,6 +20,11 @@ const model = defineModel<vo.ViewOptions>({
       label="Show Pixel Indicator"
       v-model="model.showPixelIndicator"
     />
+    <CheckboxInput
+      :defaultValue="vo.SHOW_POSITION_INDICATOR_DEFAULT"
+      label="Show Position Indicator"
+      v-model="model.showPositionIndicator"
+    />
   </div>
 </template>
 

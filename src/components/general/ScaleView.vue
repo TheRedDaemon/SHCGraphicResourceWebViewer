@@ -2,20 +2,25 @@
 import { nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
 import PixelIndicator from "./scale-view/PixelIndicator.vue";
+import PositionIndicator from "./scale-view/PositionIndicator.vue";
+import ScaleIndicator from "./scale-view/ScaleIndicator.vue";
+
+const props = defineProps<{
+  frameSize: { width: number; height: number };
+}>();
 
 const scaleFactor = ref<number>(1);
 const mousePosition = ref<{ x: number; y: number } | null>(null);
 const pixelData = ref<Uint8ClampedArray | null>(null);
+const pixelPosition = ref<{ x: number; y: number } | null>(null);
 const isHovered = ref(false);
-const showScaleIndicator = ref(false);
 
 const contentRef = ref<HTMLElement | null>(null);
 const containerDimensions = ref({ width: 0, height: 0 });
 const overflowContainerRef = ref<HTMLElement | null>(null);
 
-const props = defineProps<{
-  frameSize: { width: number; height: number };
-}>();
+const viewOptions = viewOptionsStorage.read();
+let numberOfPositionDigits = 4;
 
 function updateDimensions() {
   if (contentRef.value) {
@@ -26,16 +31,36 @@ function updateDimensions() {
   }
 }
 
-function extractPixelPosition(event: MouseEvent) {
-  const target = event.target;
+function updateNumberOfPositionDigits() {
+  if (!contentRef.value) return;
+  const maxWidth = contentRef.value.offsetWidth;
+  const maxHeight = contentRef.value.offsetHeight;
+  const maxDimension = Math.max(maxWidth, maxHeight);
+  numberOfPositionDigits = String(maxDimension).length;
+}
 
-  if (!(target instanceof HTMLCanvasElement)) {
+function isInsideRect(x: number, y: number, rect: DOMRect) {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+function extractPixel(event: MouseEvent) {
+  if (!contentRef.value) {
     pixelData.value = null;
     return;
   }
 
-  if (!contentRef.value) {
+  const contentRect = contentRef.value.getBoundingClientRect();
+
+  // Check if mouse is inside contentRef bounds (in client space)
+  if (!isInsideRect(event.clientX, event.clientY, contentRect)) {
     pixelData.value = null;
+    return;
+  }
+
+  const target = event.target;
+
+  if (!(target instanceof HTMLCanvasElement)) {
+    pixelData.value = new Uint8ClampedArray([0, 0, 0, 0]);
     return;
   }
 
@@ -53,12 +78,38 @@ function extractPixelPosition(event: MouseEvent) {
   // Extract pixel data from canvas
   const context = target.getContext("2d");
   if (!context) {
-    pixelData.value = null;
+    pixelData.value = new Uint8ClampedArray([0, 0, 0, 0]);
     return;
   }
 
   const imageData = context.getImageData(pixelX, pixelY, 1, 1);
   pixelData.value = imageData.data;
+}
+
+function extractPosition(event: MouseEvent) {
+  if (!contentRef.value) {
+    pixelPosition.value = null;
+    return;
+  }
+
+  // Get contentRef bounding box
+  const contentRect = contentRef.value.getBoundingClientRect();
+
+  // Check if mouse is inside contentRef bounds (in client space)
+  if (!isInsideRect(event.clientX, event.clientY, contentRect)) {
+    pixelPosition.value = null;
+    return;
+  }
+
+  // Calculate position relative to the contentRef
+  const relativeX = event.clientX - contentRect.left;
+  const relativeY = event.clientY - contentRect.top;
+
+  // Convert to actual pixel coordinates by dividing by scale factor
+  const pixelX = Math.floor(relativeX / scaleFactor.value);
+  const pixelY = Math.floor(relativeY / scaleFactor.value);
+
+  pixelPosition.value = { x: pixelX, y: pixelY };
 }
 
 function updateMousePosition(event: MouseEvent) {
@@ -105,18 +156,21 @@ function handleKeydown(event: KeyboardEvent) {
 function handleMouseEnter(event: MouseEvent) {
   isHovered.value = true;
   updateMousePosition(event);
-  extractPixelPosition(event);
+  extractPixel(event);
+  extractPosition(event);
 }
 
 function handleMouseLeave() {
   isHovered.value = false;
   mousePosition.value = null;
   pixelData.value = null;
+  pixelPosition.value = null;
 }
 
 function handleMouseMove(event: MouseEvent) {
   updateMousePosition(event);
-  extractPixelPosition(event);
+  extractPixel(event);
+  extractPosition(event);
 }
 
 function adjustScrollPositionToScale(newScale: number, oldScale: number) {
@@ -167,31 +221,12 @@ function adjustScrollPositionToScale(newScale: number, oldScale: number) {
   });
 }
 
-let scaleIndicatorTimeout: number | null = null;
-
-function triggerScaleIndicator() {
-  const options = viewOptionsStorage.read();
-  if (!options.showScaleIndicator) {
-    return;
-  }
-  showScaleIndicator.value = true;
-  if (scaleIndicatorTimeout !== null) {
-    clearTimeout(scaleIndicatorTimeout);
-  }
-  scaleIndicatorTimeout = window.setTimeout(() => {
-    showScaleIndicator.value = false;
-  }, 1500);
-}
-
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
-  if (scaleIndicatorTimeout !== null) {
-    clearTimeout(scaleIndicatorTimeout);
-  }
 });
 
 // only creates observer, which fires directly
@@ -199,6 +234,7 @@ watchEffect((onCleanup) => {
   if (contentRef.value) {
     const observer = new ResizeObserver(() => {
       updateDimensions();
+      updateNumberOfPositionDigits();
     });
     observer.observe(contentRef.value);
     onCleanup(() => observer.disconnect());
@@ -206,13 +242,7 @@ watchEffect((onCleanup) => {
 });
 
 // respond to scaling
-watch(
-  () => scaleFactor.value,
-  (newScale, oldScale) => {
-    adjustScrollPositionToScale(newScale, oldScale);
-    triggerScaleIndicator();
-  },
-);
+watch(() => scaleFactor.value, adjustScrollPositionToScale);
 </script>
 
 <template>
@@ -223,13 +253,21 @@ watch(
       height: `${props.frameSize.height}px`,
     }"
   >
-    <div class="scale-indicator" :class="{ visible: showScaleIndicator }">
-      {{ scaleFactor }}x
-    </div>
-    <PixelIndicator
-      v-if="viewOptionsStorage.read().showPixelIndicator"
-      :pixelData="pixelData"
+    <ScaleIndicator
+      v-if="viewOptions.showScaleIndicator"
+      :scaleFactor="scaleFactor"
     />
+    <div class="indicators-container-top-right">
+      <PixelIndicator
+        v-if="viewOptions.showPixelIndicator"
+        :pixelData="pixelData"
+      />
+      <PositionIndicator
+        v-if="viewOptions.showPositionIndicator"
+        :pixelPosition="pixelPosition"
+        :numberOfDigits="numberOfPositionDigits"
+      />
+    </div>
     <div
       ref="overflowContainerRef"
       class="overflow-container"
@@ -279,34 +317,6 @@ watch(
   overflow: auto;
 }
 
-.scale-indicator {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 20px 40px;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 48px;
-  font-weight: bold;
-  z-index: 10;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
-}
-
-.scale-indicator.visible {
-  opacity: 1;
-}
-
-.pixel-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-}
-
 .size-container {
   display: grid;
   grid-template-columns: 1fr;
@@ -317,5 +327,23 @@ watch(
 .scaled-content {
   transform-origin: center;
   image-rendering: pixelated;
+}
+
+.indicators-container-top-right {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.scale-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
 }
 </style>
