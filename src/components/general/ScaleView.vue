@@ -57,7 +57,7 @@ function isInsideRect(x: number, y: number, rect: DOMRect) {
 }
 
 function extractPixel(event: MouseEvent) {
-  if (!contentRef.value) {
+  if (!contentRef.value || pressedArrowKeys.size > 0) {
     pixelData.value = null;
     return;
   }
@@ -110,7 +110,7 @@ function extractPixel(event: MouseEvent) {
 }
 
 function extractPosition(event: MouseEvent) {
-  if (!contentRef.value) {
+  if (!contentRef.value || pressedArrowKeys.size > 0) {
     pixelPosition.value = null;
     return;
   }
@@ -276,6 +276,9 @@ function handleKeydown(event: KeyboardEvent) {
     case "ArrowRight":
       event.preventDefault();
       pressedArrowKeys.add(event.key);
+      // Deactivate indicators during keyboard navigation
+      pixelData.value = null;
+      pixelPosition.value = null;
       if (!scrollAnimationFrameId) {
         scrollAnimationFrameId = requestAnimationFrame(applyArrowKeyScroll);
       }
