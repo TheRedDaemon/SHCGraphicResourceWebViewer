@@ -5,22 +5,35 @@ import PixelIndicator from "./scale-view/PixelIndicator.vue";
 import PositionIndicator from "./scale-view/PositionIndicator.vue";
 import ScaleIndicator from "./scale-view/ScaleIndicator.vue";
 
+type ScrollMode = "set" | "edit";
+
 const props = defineProps<{
   frameSize: { width: number; height: number };
 }>();
 
+// Constants
+const MIDDLE_MOUSE_BUTTON = 1;
+const ARROW_KEY_MOVEMENT = 10;
+
+// Reactive state (used in template or passed to children)
 const scaleFactor = ref<number>(1);
-const mousePosition = ref<{ x: number; y: number } | null>(null);
 const pixelData = ref<Uint8ClampedArray | null>(null);
 const pixelPosition = ref<{ x: number; y: number } | null>(null);
-const isHovered = ref(false);
-
-const contentRef = ref<HTMLElement | null>(null);
+const isDragging = ref(false);
 const containerDimensions = ref({ width: 0, height: 0 });
+const numberOfPositionDigits = ref(4);
+
+// Template refs
+const contentRef = ref<HTMLElement | null>(null);
 const overflowContainerRef = ref<HTMLElement | null>(null);
 
+// Non-reactive internal state
 const viewOptions = viewOptionsStorage.read();
-let numberOfPositionDigits = 4;
+const pressedArrowKeys = new Set<string>();
+let scrollAnimationFrameId: number | null = null;
+let dragStart: { x: number; y: number } | null = null;
+let scrollStart: { left: number; top: number } | null = null;
+let mousePosition: { x: number; y: number } | null = null;
 
 function updateDimensions() {
   if (contentRef.value) {
@@ -36,7 +49,7 @@ function updateNumberOfPositionDigits() {
   const maxWidth = contentRef.value.offsetWidth;
   const maxHeight = contentRef.value.offsetHeight;
   const maxDimension = Math.max(maxWidth, maxHeight);
-  numberOfPositionDigits = String(maxDimension).length;
+  numberOfPositionDigits.value = String(maxDimension).length;
 }
 
 function isInsideRect(x: number, y: number, rect: DOMRect) {
@@ -83,7 +96,17 @@ function extractPixel(event: MouseEvent) {
   }
 
   const imageData = context.getImageData(pixelX, pixelY, 1, 1);
-  pixelData.value = imageData.data;
+  // Avoid unnecessary re-renders by checking if pixel data actually changed
+  const newData = imageData.data;
+  if (
+    !pixelData.value ||
+    newData[0] !== pixelData.value[0] ||
+    newData[1] !== pixelData.value[1] ||
+    newData[2] !== pixelData.value[2] ||
+    newData[3] !== pixelData.value[3]
+  ) {
+    pixelData.value = newData;
+  }
 }
 
 function extractPosition(event: MouseEvent) {
@@ -109,16 +132,31 @@ function extractPosition(event: MouseEvent) {
   const pixelX = Math.floor(relativeX / scaleFactor.value);
   const pixelY = Math.floor(relativeY / scaleFactor.value);
 
-  pixelPosition.value = { x: pixelX, y: pixelY };
+  // Avoid unnecessary re-renders by checking if position actually changed
+  if (
+    !pixelPosition.value ||
+    pixelPosition.value.x !== pixelX ||
+    pixelPosition.value.y !== pixelY
+  ) {
+    pixelPosition.value = { x: pixelX, y: pixelY };
+  }
 }
 
 function updateMousePosition(event: MouseEvent) {
   if (overflowContainerRef.value) {
     const rect = overflowContainerRef.value.getBoundingClientRect();
-    mousePosition.value = {
+    mousePosition = {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
     };
+  }
+}
+
+function updateDrag(event: MouseEvent) {
+  if (isDragging.value && dragStart && scrollStart) {
+    const deltaX = event.clientX - dragStart.x;
+    const deltaY = event.clientY - dragStart.y;
+    modifyScroll("set", scrollStart.left - deltaX, scrollStart.top - deltaY);
   }
 }
 
@@ -134,43 +172,19 @@ function scaleDown() {
   }
 }
 
-function handleWheel(event: WheelEvent) {
-  event.preventDefault();
-  if (event.deltaY < 0) {
-    scaleUp();
-  } else {
-    scaleDown();
+function modifyScroll(mode: ScrollMode, left?: number, top?: number) {
+  if (!overflowContainerRef.value) {
+    throw new Error("Invalid state: overflowContainerRef is null");
   }
-}
 
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key === "+") {
-    event.preventDefault();
-    scaleUp();
-  } else if (event.key === "-") {
-    event.preventDefault();
-    scaleDown();
+  if (left !== undefined) {
+    overflowContainerRef.value.scrollLeft =
+      mode === "set" ? left : overflowContainerRef.value.scrollLeft + left;
   }
-}
-
-function handleMouseEnter(event: MouseEvent) {
-  isHovered.value = true;
-  updateMousePosition(event);
-  extractPixel(event);
-  extractPosition(event);
-}
-
-function handleMouseLeave() {
-  isHovered.value = false;
-  mousePosition.value = null;
-  pixelData.value = null;
-  pixelPosition.value = null;
-}
-
-function handleMouseMove(event: MouseEvent) {
-  updateMousePosition(event);
-  extractPixel(event);
-  extractPosition(event);
+  if (top !== undefined) {
+    overflowContainerRef.value.scrollTop =
+      mode === "set" ? top : overflowContainerRef.value.scrollTop + top;
+  }
 }
 
 function adjustScrollPositionToScale(newScale: number, oldScale: number) {
@@ -189,17 +203,16 @@ function adjustScrollPositionToScale(newScale: number, oldScale: number) {
   let newScrollLeft: number;
   let newScrollTop: number;
 
-  if (mousePosition.value) {
+  if (mousePosition) {
     // Calculate the content point under the mouse (in original content coordinates)
     const contentX =
-      (containerRect.left - contentRect.left + mousePosition.value.x) /
-      oldScale;
+      (containerRect.left - contentRect.left + mousePosition.x) / oldScale;
     const contentY =
-      (containerRect.top - contentRect.top + mousePosition.value.y) / oldScale;
+      (containerRect.top - contentRect.top + mousePosition.y) / oldScale;
 
     // Calculate new scroll position to keep same content point under mouse
-    newScrollLeft = contentX * newScale - mousePosition.value.x;
-    newScrollTop = contentY * newScale - mousePosition.value.y;
+    newScrollLeft = contentX * newScale - mousePosition.x;
+    newScrollTop = contentY * newScale - mousePosition.y;
   } else {
     // Center zoom when no mouse position
     const offsetX =
@@ -214,19 +227,130 @@ function adjustScrollPositionToScale(newScale: number, oldScale: number) {
 
   // Wait for DOM update before setting scroll position
   nextTick(() => {
-    if (overflowContainerRef.value) {
-      overflowContainerRef.value.scrollLeft = newScrollLeft;
-      overflowContainerRef.value.scrollTop = newScrollTop;
-    }
+    modifyScroll("set", newScrollLeft, newScrollTop);
   });
+}
+
+function applyArrowKeyScroll() {
+  let deltaX = 0;
+  let deltaY = 0;
+
+  if (pressedArrowKeys.has("ArrowLeft")) deltaX -= ARROW_KEY_MOVEMENT;
+  if (pressedArrowKeys.has("ArrowRight")) deltaX += ARROW_KEY_MOVEMENT;
+  if (pressedArrowKeys.has("ArrowUp")) deltaY -= ARROW_KEY_MOVEMENT;
+  if (pressedArrowKeys.has("ArrowDown")) deltaY += ARROW_KEY_MOVEMENT;
+
+  if (deltaX !== 0 || deltaY !== 0) {
+    modifyScroll("edit", deltaX, deltaY);
+  }
+
+  if (pressedArrowKeys.size > 0) {
+    scrollAnimationFrameId = requestAnimationFrame(applyArrowKeyScroll);
+  } else {
+    scrollAnimationFrameId = null;
+  }
+}
+
+function handleWheel(event: WheelEvent) {
+  event.preventDefault();
+  if (event.deltaY < 0) {
+    scaleUp();
+  } else {
+    scaleDown();
+  }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  switch (event.key) {
+    case "+":
+      event.preventDefault();
+      scaleUp();
+      break;
+    case "-":
+      event.preventDefault();
+      scaleDown();
+      break;
+    case "ArrowUp":
+    case "ArrowDown":
+    case "ArrowLeft":
+    case "ArrowRight":
+      event.preventDefault();
+      pressedArrowKeys.add(event.key);
+      if (!scrollAnimationFrameId) {
+        scrollAnimationFrameId = requestAnimationFrame(applyArrowKeyScroll);
+      }
+      break;
+  }
+}
+
+function handleKeyup(event: KeyboardEvent) {
+  switch (event.key) {
+    case "ArrowUp":
+    case "ArrowDown":
+    case "ArrowLeft":
+    case "ArrowRight":
+      pressedArrowKeys.delete(event.key);
+      if (pressedArrowKeys.size === 0 && scrollAnimationFrameId !== null) {
+        cancelAnimationFrame(scrollAnimationFrameId);
+        scrollAnimationFrameId = null;
+      }
+      break;
+  }
+}
+
+function handleMouseEnter(event: MouseEvent) {
+  updateMousePosition(event);
+  extractPixel(event);
+  extractPosition(event);
+}
+
+function handleMouseLeave() {
+  isDragging.value = false;
+  dragStart = null;
+  scrollStart = null;
+  mousePosition = null;
+  pixelData.value = null;
+  pixelPosition.value = null;
+}
+
+function handleMouseMove(event: MouseEvent) {
+  updateMousePosition(event);
+  updateDrag(event);
+  extractPixel(event);
+  extractPosition(event);
+}
+
+function handleMouseDown(event: MouseEvent) {
+  if (event.button === MIDDLE_MOUSE_BUTTON && overflowContainerRef.value) {
+    event.preventDefault();
+    isDragging.value = true;
+    dragStart = { x: event.clientX, y: event.clientY };
+    scrollStart = {
+      left: overflowContainerRef.value.scrollLeft,
+      top: overflowContainerRef.value.scrollTop,
+    };
+  }
+}
+
+function handleMouseUp(event: MouseEvent) {
+  if (event.button === MIDDLE_MOUSE_BUTTON) {
+    isDragging.value = false;
+    dragStart = null;
+    scrollStart = null;
+  }
 }
 
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
+  window.addEventListener("keyup", handleKeyup);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
+  window.removeEventListener("keyup", handleKeyup);
+  if (scrollAnimationFrameId !== null) {
+    cancelAnimationFrame(scrollAnimationFrameId);
+  }
 });
 
 // only creates observer, which fires directly
@@ -271,10 +395,13 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
     <div
       ref="overflowContainerRef"
       class="overflow-container"
+      :class="{ grabbing: isDragging }"
       @wheel="handleWheel"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
       @mousemove="handleMouseMove"
+      @mousedown="handleMouseDown"
+      @mouseup="handleMouseUp"
     >
       <div
         class="size-container"
@@ -315,6 +442,16 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
   width: 100%;
   height: 100%;
   overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.overflow-container::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-container.grabbing {
+  cursor: grabbing;
 }
 
 .size-container {
