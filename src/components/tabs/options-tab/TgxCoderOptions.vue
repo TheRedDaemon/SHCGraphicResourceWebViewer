@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NumberInput from "src/components/general/NumberInput.vue";
+import NumberInput from "src/components/general/input/NumberInput.vue";
 import * as tco from "src/objects/options/tgx-coder-options";
 
 const model = defineModel<tco.TgxCoderOptions>({ required: true });
