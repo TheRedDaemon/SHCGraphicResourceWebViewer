@@ -15,6 +15,11 @@ const model = defineModel<vo.ViewOptions>({
       label="Show Scale Indicator"
       v-model="model.showScaleIndicator"
     />
+    <CheckboxInput
+      :defaultValue="vo.SHOW_PIXEL_INDICATOR_DEFAULT"
+      label="Show Pixel Indicator"
+      v-model="model.showPixelIndicator"
+    />
   </div>
 </template>
 

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
+import PixelIndicator from "./scale-view/PixelIndicator.vue";
 
 const scaleFactor = ref<number>(1);
 const mousePosition = ref<{ x: number; y: number } | null>(null);
+const pixelData = ref<Uint8ClampedArray | null>(null);
 const isHovered = ref(false);
 const showScaleIndicator = ref(false);
 
@@ -22,6 +24,41 @@ function updateDimensions() {
       height: contentRef.value.offsetHeight * scaleFactor.value,
     };
   }
+}
+
+function extractPixelPosition(event: MouseEvent) {
+  const target = event.target;
+
+  if (!(target instanceof HTMLCanvasElement)) {
+    pixelData.value = null;
+    return;
+  }
+
+  if (!contentRef.value) {
+    pixelData.value = null;
+    return;
+  }
+
+  // Get canvas bounding box
+  const canvasRect = target.getBoundingClientRect();
+
+  // Calculate position relative to the canvas
+  const relativeX = event.clientX - canvasRect.left;
+  const relativeY = event.clientY - canvasRect.top;
+
+  // Convert to actual pixel coordinates by dividing by scale factor
+  const pixelX = Math.floor(relativeX / scaleFactor.value);
+  const pixelY = Math.floor(relativeY / scaleFactor.value);
+
+  // Extract pixel data from canvas
+  const context = target.getContext("2d");
+  if (!context) {
+    pixelData.value = null;
+    return;
+  }
+
+  const imageData = context.getImageData(pixelX, pixelY, 1, 1);
+  pixelData.value = imageData.data;
 }
 
 function updateMousePosition(event: MouseEvent) {
@@ -68,15 +105,18 @@ function handleKeydown(event: KeyboardEvent) {
 function handleMouseEnter(event: MouseEvent) {
   isHovered.value = true;
   updateMousePosition(event);
+  extractPixelPosition(event);
 }
 
 function handleMouseLeave() {
   isHovered.value = false;
   mousePosition.value = null;
+  pixelData.value = null;
 }
 
 function handleMouseMove(event: MouseEvent) {
   updateMousePosition(event);
+  extractPixelPosition(event);
 }
 
 function adjustScrollPositionToScale(newScale: number, oldScale: number) {
@@ -186,6 +226,10 @@ watch(
     <div class="scale-indicator" :class="{ visible: showScaleIndicator }">
       {{ scaleFactor }}x
     </div>
+    <PixelIndicator
+      v-if="viewOptionsStorage.read().showPixelIndicator"
+      :pixelData="pixelData"
+    />
     <div
       ref="overflowContainerRef"
       class="overflow-container"
@@ -254,6 +298,13 @@ watch(
 
 .scale-indicator.visible {
   opacity: 1;
+}
+
+.pixel-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
 }
 
 .size-container {

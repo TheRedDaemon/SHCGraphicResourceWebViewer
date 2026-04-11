@@ -22,6 +22,20 @@ export function reduceColorDepthOfRgba8888ToArgb1555(
   }
 }
 
+export function convertPixelRgba8888ToArgb1555(
+  r8: number,
+  g8: number,
+  b8: number,
+  a8: number,
+): { a: number; r: number; g: number; b: number } {
+  const a1 = a8 > 127 ? 1 : 0;
+  const r5 = r8 >> 3;
+  const g5 = g8 >> 3;
+  const b5 = b8 >> 3;
+
+  return { a: a1, r: r5, g: g5, b: b5 };
+}
+
 export function convertRgba8888ToArgb1555(
   input: Uint8ClampedArray,
 ): Uint16Array<ArrayBuffer> {
@@ -45,6 +59,20 @@ export function convertRgba8888ToArgb1555(
   }
 
   return output;
+}
+
+export function convertPixelArgb1555ToRgba8888(
+  a1: number,
+  r5: number,
+  g5: number,
+  b5: number,
+): { r: number; g: number; b: number; a: number } {
+  const r8 = (r5 << 3) | (r5 >> 2);
+  const g8 = (g5 << 3) | (g5 >> 2);
+  const b8 = (b5 << 3) | (b5 >> 2);
+  const a8 = a1 > 0 ? 255 : 0;
+
+  return { r: r8, g: g8, b: b8, a: a8 };
 }
 
 export function convertArgb1555ToRgba8888(
