@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import {
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from "vue";
 import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
 import PixelIndicator from "./scale-view/PixelIndicator.vue";
 import PositionIndicator from "./scale-view/PositionIndicator.vue";
@@ -24,8 +32,8 @@ const containerDimensions = ref({ width: 0, height: 0 });
 const numberOfPositionDigits = ref(4);
 
 // Template refs
-const contentRef = ref<HTMLElement | null>(null);
-const overflowContainerRef = ref<HTMLElement | null>(null);
+const contentRef = useTemplateRef("scaled-content");
+const overflowContainerRef = useTemplateRef("overflow-container");
 
 // Non-reactive internal state
 const viewOptions = viewOptionsStorage.read();
@@ -396,7 +404,7 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
       />
     </div>
     <div
-      ref="overflowContainerRef"
+      ref="overflow-container"
       class="overflow-container"
       :class="{ grabbing: isDragging }"
       @wheel="handleWheel"
@@ -414,7 +422,7 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
         }"
       >
         <div
-          ref="contentRef"
+          ref="scaled-content"
           class="scaled-content"
           :style="{ transform: `scale(${scaleFactor})` }"
         >
@@ -478,6 +486,7 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
   gap: 10px;
   align-items: flex-end;
   z-index: 10;
+  pointer-events: none;
 }
 
 .scale-indicator {
