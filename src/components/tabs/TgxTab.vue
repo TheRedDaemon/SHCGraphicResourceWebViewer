@@ -35,7 +35,7 @@ async function uploadFile(event: Event) {
       <button>Export</button>
     </div>
     <div class="canvas">
-      <ScaleView>
+      <ScaleView :frameSize="{ width: 1280, height: 720 }">
         <canvas class="image-canvas" ref="image-canvas"></canvas>
       </ScaleView>
     </div>

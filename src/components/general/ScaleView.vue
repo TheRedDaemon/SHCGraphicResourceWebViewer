@@ -11,6 +11,10 @@ const contentRef = ref<HTMLElement | null>(null);
 const containerDimensions = ref({ width: 0, height: 0 });
 const overflowContainerRef = ref<HTMLElement | null>(null);
 
+const props = defineProps<{
+  frameSize: { width: number; height: number };
+}>();
+
 function updateDimensions() {
   if (contentRef.value) {
     containerDimensions.value = {
@@ -76,36 +80,40 @@ function handleMouseMove(event: MouseEvent) {
 }
 
 function adjustScrollPositionToScale(newScale: number, oldScale: number) {
-  if (!overflowContainerRef.value) {
-    throw new Error("Invalid state: overflowContainerRef is null");
+  if (!overflowContainerRef.value || !contentRef.value) {
+    throw new Error(
+      "Invalid state: overflowContainerRef or contentRef is null",
+    );
   }
 
-  // Store current scroll position
-  const oldScrollLeft = overflowContainerRef.value.scrollLeft;
-  const oldScrollTop = overflowContainerRef.value.scrollTop;
+  const containerRect = overflowContainerRef.value.getBoundingClientRect();
+  const contentRect = contentRef.value.getBoundingClientRect();
 
-  // Calculate relative position (use mouse position if available, otherwise center)
-  const viewportWidth = overflowContainerRef.value.clientWidth;
-  const viewportHeight = overflowContainerRef.value.clientHeight;
+  const frameWidth = overflowContainerRef.value.clientWidth;
+  const frameHeight = overflowContainerRef.value.clientHeight;
 
   let newScrollLeft: number;
   let newScrollTop: number;
 
   if (mousePosition.value) {
     // Calculate the content point under the mouse (in original content coordinates)
-    const contentX = (oldScrollLeft + mousePosition.value.x) / oldScale;
-    const contentY = (oldScrollTop + mousePosition.value.y) / oldScale;
+    const contentX =
+      (containerRect.left - contentRect.left + mousePosition.value.x) /
+      oldScale;
+    const contentY =
+      (containerRect.top - contentRect.top + mousePosition.value.y) / oldScale;
 
     // Calculate new scroll position to keep same content point under mouse
     newScrollLeft = contentX * newScale - mousePosition.value.x;
     newScrollTop = contentY * newScale - mousePosition.value.y;
   } else {
     // Center zoom when no mouse position
-    const centerX = oldScrollLeft + viewportWidth / 2;
-    const centerY = oldScrollTop + viewportHeight / 2;
-    const scaleRatio = newScale / oldScale;
-    newScrollLeft = centerX * scaleRatio - viewportWidth / 2;
-    newScrollTop = centerY * scaleRatio - viewportHeight / 2;
+    const offsetX =
+      (containerRect.left - contentRect.left + frameWidth / 2) / oldScale;
+    const offsetY =
+      (containerRect.top - contentRect.top + frameHeight / 2) / oldScale;
+    newScrollLeft = offsetX * newScale - frameWidth / 2;
+    newScrollTop = offsetY * newScale - frameHeight / 2;
   }
 
   updateDimensions();
@@ -113,7 +121,6 @@ function adjustScrollPositionToScale(newScale: number, oldScale: number) {
   // Wait for DOM update before setting scroll position
   nextTick(() => {
     if (overflowContainerRef.value) {
-      // Set new scroll position
       overflowContainerRef.value.scrollLeft = newScrollLeft;
       overflowContainerRef.value.scrollTop = newScrollTop;
     }
@@ -169,7 +176,13 @@ watch(
 </script>
 
 <template>
-  <div class="fixed-view">
+  <div
+    class="fixed-view"
+    :style="{
+      width: `${props.frameSize.width}px`,
+      height: `${props.frameSize.height}px`,
+    }"
+  >
     <div class="scale-indicator" :class="{ visible: showScaleIndicator }">
       {{ scaleFactor }}x
     </div>
@@ -202,8 +215,6 @@ watch(
 
 <style scoped>
 .fixed-view {
-  width: 100%;
-  height: 100%;
   position: relative;
   overflow: hidden;
   /* source: https://stackoverflow.com/a/65129916 */
