@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import ScaleView from "src/components/general/ScaleView.vue";
 import { extractImageFromFile } from "src/functions/file-import";
-import { loadFile } from "src/functions/tgx-file";
+import { loadTgx, createTgx } from "src/functions/tgx-file";
 import { useTemplateRef } from "vue";
-import { uploadOptions } from "src/storage/option-storage";
+import { uploadOptions, tgxCoderOptions } from "src/storage/option-storage";
 import { ref, watchEffect } from "vue";
 
 // TODO?: Sometimes the upload remembers the last folder,
@@ -25,7 +25,9 @@ async function uploadFile(event: Event) {
     try {
       let imageData: ImageData;
       if (file.name.endsWith(".tgx")) {
-        imageData = await loadFile(file);
+        const arrayBuffer = await file.arrayBuffer();
+        const dataView = new DataView(arrayBuffer);
+        imageData = loadTgx(dataView);
       } else {
         imageData = await extractImageFromFile(file, uploadOptions.read());
       }
@@ -50,10 +52,47 @@ async function uploadFile(event: Event) {
       errorMessage.value =
         error instanceof Error ? error.message : "Unknown error occurred";
       imageSize.value = null;
-      imageCanvas.value.classList.add("hidden");
+      imageCanvas.value?.classList.add("hidden");
     } finally {
       isLoading.value = false;
     }
+  }
+}
+
+// TODO: improve handling and errors
+
+function exportFile() {
+  if (!imageCanvas.value || !imageSize.value) {
+    return;
+  }
+
+  try {
+    const canvas = imageCanvas.value;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Failed to get 2D context");
+    }
+
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const tgxData = createTgx(imageData, tgxCoderOptions.read());
+
+    const blob = new Blob([tgxData as BlobPart], {
+      type: "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    try {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "exported.tgx";
+      link.click();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : "Unknown error occurred during export";
   }
 }
 
@@ -92,7 +131,9 @@ watchEffect((onCleanup) => {
       <span class="image-size">{{
         imageSize ? `${imageSize.width}x${imageSize.height}` : "No image"
       }}</span>
-      <button :disabled="isLoading">Export</button>
+      <button :disabled="isLoading || !imageSize" @click="exportFile">
+        Export
+      </button>
     </div>
     <div class="view-wrapper" ref="view-wrapper">
       <ScaleView :frameSize="frameSize">
