@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import ScaleView from "src/components/general/ScaleView.vue";
 import { extractImageFromFile } from "src/functions/file-import";
-import SimpleImageData from "src/objects/image-data/SimpleImageData";
+import { loadFile } from "src/functions/tgx-file";
 import { useTemplateRef } from "vue";
 import { uploadOptions } from "src/storage/option-storage";
 import { ref, watchEffect } from "vue";
+
+// TODO?: Sometimes the upload remembers the last folder,
+// sometimes not. No idea if there is anything that could be done, though.
 
 const frameSize = ref({ width: 1280, height: 720 });
 const isLoading = ref(false);
@@ -20,21 +23,26 @@ async function uploadFile(event: Event) {
   if (file && imageCanvas.value) {
     isLoading.value = true;
     try {
-      const imageData = await extractImageFromFile(file, uploadOptions.read());
-      const simpleImageData = SimpleImageData.fromImage(imageData);
+      let imageData: ImageData;
+      if (file.name.endsWith(".tgx")) {
+        imageData = await loadFile(file);
+      } else {
+        imageData = await extractImageFromFile(file, uploadOptions.read());
+      }
+
       const canvas = imageCanvas.value;
-      canvas.width = simpleImageData.width;
-      canvas.height = simpleImageData.height;
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
 
       const context = canvas.getContext("2d");
       if (!context) {
         throw new Error("Failed to get 2D context");
       }
-      simpleImageData.drawOnContext(context, 0, 0);
+      context.putImageData(imageData, 0, 0);
 
       imageSize.value = {
-        width: simpleImageData.width,
-        height: simpleImageData.height,
+        width: imageData.width,
+        height: imageData.height,
       };
       errorMessage.value = null;
       canvas.classList.remove("hidden");

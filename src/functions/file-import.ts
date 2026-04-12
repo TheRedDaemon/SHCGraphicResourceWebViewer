@@ -5,25 +5,27 @@ export async function extractImageFromFile(
   file: File,
   uploadOptions: UploadOptions,
 ): Promise<ImageData> {
-  const url = URL.createObjectURL(file);
+  const imageBitmap = await createImageBitmap(file);
   try {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-
-    const canvas = new OffscreenCanvas(image.width, image.height);
+    const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("No context");
     }
-    context.drawImage(image, 0, 0);
-    const imageData = context.getImageData(0, 0, image.width, image.height);
+    context.drawImage(imageBitmap, 0, 0);
+    const imageData = context.getImageData(
+      0,
+      0,
+      imageBitmap.width,
+      imageBitmap.height,
+    );
+
     reduceColorDepthOfRgba8888ToArgb1555(
       imageData.data,
       uploadOptions.alphaThreshold,
     );
     return imageData;
   } finally {
-    URL.revokeObjectURL(url);
+    imageBitmap.close();
   }
 }
