@@ -1,4 +1,4 @@
-import { convertTgxToArgb } from "./coder/tgx-coder";
+import { decodeTgx } from "./coder/tgx-coder";
 import { convertArgb1555ToRgba8888 } from "./color-depth-converter";
 
 interface TgxHeader {
@@ -29,7 +29,7 @@ export async function loadFile(file: File): Promise<ImageData> {
     arrayBuffer.byteLength - TGX_HEADER_SIZE,
   );
 
-  const argb1555Pixels = await convertTgxToArgb(
+  const argb1555Pixels = decodeTgx(
     tgxHeader.width,
     tgxHeader.height,
     encodedStream,
