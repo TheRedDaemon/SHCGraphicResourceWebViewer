@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { convertPixelRgba8888ToArgb1555 } from "src/functions/color-depth-converter";
+import { convertPixelRgba8888ToArgb1555 } from "src/functions/coder";
 
 const props = defineProps<{
   pixelData: Uint8ClampedArray | null;

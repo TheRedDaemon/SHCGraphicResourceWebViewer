@@ -1,8 +1,9 @@
-import { decodeTgx, encodeTgx } from "./coder/tgx-coder";
 import {
+  decodeTgx,
+  encodeTgx,
   convertArgb1555ToRgba8888,
   convertRgba8888ToArgb1555,
-} from "./color-depth-converter";
+} from "./coder";
 import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
 
 interface TgxHeader {
@@ -12,7 +13,13 @@ interface TgxHeader {
 
 const TGX_HEADER_SIZE = 8; // 4 bytes width + 4 bytes height
 
-export function loadTgx(dataView: DataView): ImageData {
+/**
+ * Loads a TGX file and decodes it to ImageData.
+ * @param byteArray - The TGX file data as a byte array. WARNING: Buffer consumed by this call.
+ * @returns The decoded image data.
+ */
+export async function loadTgx(byteArray: Uint8Array): Promise<ImageData> {
+  const dataView = new DataView(byteArray.buffer);
   if (TGX_HEADER_SIZE > dataView.byteLength) {
     throw new Error("File too small for TGX header");
   }
@@ -30,26 +37,30 @@ export function loadTgx(dataView: DataView): ImageData {
     dataView.byteLength - TGX_HEADER_SIZE,
   );
 
-  const argb1555Pixels = decodeTgx(
+  const argb1555Pixels = await decodeTgx(
     tgxHeader.width,
     tgxHeader.height,
     encodedStream,
   );
 
-  const rgba8888Pixels = convertArgb1555ToRgba8888(argb1555Pixels);
+  const rgba8888Pixels = await convertArgb1555ToRgba8888(argb1555Pixels);
 
   return new ImageData(rgba8888Pixels, tgxHeader.width, tgxHeader.height);
 }
 
-export function createTgx(
+/**
+ * Creates a TGX file from ImageData.
+ * @param imageData - The image data to encode. WARNING: Data is consumed by this call.
+ * @param tgxCoderOptions - Options for the TGX encoder.
+ * @returns The encoded TGX file data as a byte array.
+ */
+export async function createTgx(
   imageData: ImageData,
   tgxCoderOptions: TgxCoderOptions,
-): Uint8Array {
-  // Convert RGBA8888 to ARGB1555
-  const argb1555Pixels = convertRgba8888ToArgb1555(imageData.data);
+): Promise<Uint8Array> {
+  const argb1555Pixels = await convertRgba8888ToArgb1555(imageData.data);
 
-  // Encode the pixels using the TGX encoder
-  const encodedData = encodeTgx(
+  const encodedData = await encodeTgx(
     argb1555Pixels,
     imageData.width,
     imageData.height,

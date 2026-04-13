@@ -1,4 +1,4 @@
-import { reduceColorDepthOfRgba8888ToArgb1555 } from "src/functions/color-depth-converter";
+import { reduceColorDepthOfRgba8888ToArgb1555 } from "src/functions/coder";
 import { type UploadOptions } from "src/objects/options/upload-options";
 
 export async function extractImageFromFile(
@@ -20,11 +20,11 @@ export async function extractImageFromFile(
       imageBitmap.height,
     );
 
-    reduceColorDepthOfRgba8888ToArgb1555(
+    const modifiedData = await reduceColorDepthOfRgba8888ToArgb1555(
       imageData.data,
       uploadOptions.alphaThreshold,
     );
-    return imageData;
+    return new ImageData(modifiedData, imageBitmap.width, imageBitmap.height);
   } finally {
     imageBitmap.close();
   }

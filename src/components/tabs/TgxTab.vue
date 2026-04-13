@@ -26,8 +26,8 @@ async function uploadFile(event: Event) {
       let imageData: ImageData;
       if (file.name.endsWith(".tgx")) {
         const arrayBuffer = await file.arrayBuffer();
-        const dataView = new DataView(arrayBuffer);
-        imageData = loadTgx(dataView);
+        const byteArray = new Uint8Array(arrayBuffer);
+        imageData = await loadTgx(byteArray);
       } else {
         imageData = await extractImageFromFile(file, uploadOptions.read());
       }
@@ -61,7 +61,7 @@ async function uploadFile(event: Event) {
 
 // TODO: improve handling and errors
 
-function exportFile() {
+async function exportFile() {
   if (!imageCanvas.value || !imageSize.value) {
     return;
   }
@@ -74,7 +74,7 @@ function exportFile() {
     }
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const tgxData = createTgx(imageData, tgxCoderOptions.read());
+    const tgxData = await createTgx(imageData, tgxCoderOptions.read());
 
     const blob = new Blob([tgxData as BlobPart], {
       type: "application/octet-stream",
