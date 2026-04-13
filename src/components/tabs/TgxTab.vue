@@ -11,17 +11,38 @@ import { ref, watchEffect } from "vue";
 
 const frameSize = ref({ width: 1280, height: 720 });
 const isLoading = ref(false);
+const isExporting = ref(false);
 const imageSize = ref<{ width: number; height: number } | null>(null);
 const errorMessage = ref<string | null>(null);
 
 const imageCanvas = useTemplateRef("image-canvas");
 const viewWrapper = useTemplateRef("view-wrapper");
 
+let errorTimeout: number | null = null;
+
+function clearError() {
+  if (errorTimeout !== null) {
+    clearTimeout(errorTimeout);
+    errorTimeout = null;
+  }
+  errorMessage.value = null;
+}
+
+function setError(message: string) {
+  clearError();
+  errorMessage.value = message;
+  errorTimeout = setTimeout(() => {
+    errorMessage.value = null;
+    errorTimeout = null;
+  }, 3000);
+}
+
 async function uploadFile(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file && imageCanvas.value) {
     isLoading.value = true;
+    clearError();
     try {
       let imageData: ImageData;
       if (file.name.endsWith(".tgx")) {
@@ -46,11 +67,11 @@ async function uploadFile(event: Event) {
         width: imageData.width,
         height: imageData.height,
       };
-      errorMessage.value = null;
       canvas.classList.remove("hidden");
     } catch (error) {
-      errorMessage.value =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred",
+      );
       imageSize.value = null;
       imageCanvas.value?.classList.add("hidden");
     } finally {
@@ -59,12 +80,13 @@ async function uploadFile(event: Event) {
   }
 }
 
-// TODO: improve handling and errors
-
 async function exportFile() {
   if (!imageCanvas.value || !imageSize.value) {
     return;
   }
+
+  isExporting.value = true;
+  clearError();
 
   try {
     const canvas = imageCanvas.value;
@@ -89,10 +111,13 @@ async function exportFile() {
       URL.revokeObjectURL(url);
     }
   } catch (error) {
-    errorMessage.value =
+    setError(
       error instanceof Error
         ? error.message
-        : "Unknown error occurred during export";
+        : "Unknown error occurred during export",
+    );
+  } finally {
+    isExporting.value = false;
   }
 }
 
@@ -131,7 +156,10 @@ watchEffect((onCleanup) => {
       <span class="image-size">{{
         imageSize ? `${imageSize.width}x${imageSize.height}` : "No image"
       }}</span>
-      <button :disabled="isLoading || !imageSize" @click="exportFile">
+      <button
+        :disabled="isLoading || isExporting || !imageSize"
+        @click="exportFile"
+      >
         Export
       </button>
     </div>
@@ -144,10 +172,10 @@ watchEffect((onCleanup) => {
           height="0"
         ></canvas>
       </ScaleView>
-      <div v-if="isLoading" class="spinner-overlay">
+      <div v-if="isLoading || isExporting" class="spinner-overlay">
         <div class="spinner"></div>
       </div>
-      <div v-if="errorMessage && !isLoading" class="error-overlay">
+      <div v-if="errorMessage" class="error-overlay">
         <div class="error-message">{{ errorMessage }}</div>
       </div>
     </div>
