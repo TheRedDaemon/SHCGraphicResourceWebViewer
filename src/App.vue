@@ -20,16 +20,20 @@ const currentView = computed(() => {
 </script>
 
 <template>
-  <h1>SHC Graphic Resource Web Viewer</h1>
   <nav>
-    <a
-      v-for="(value, key) in routes"
-      :key="key"
-      :href="key"
-      :active="key === currentPath ? '' : null"
-    >
-      {{ value[0] }}
-    </a>
+    <div class="title">
+      <h1>SHC Graphic Resource Web Viewer</h1>
+    </div>
+    <div class="tabs">
+      <a
+        v-for="(value, key) in routes"
+        :key="key"
+        :href="key"
+        :active="key === currentPath ? '' : null"
+      >
+        {{ value[0] }}
+      </a>
+    </div>
   </nav>
   <main>
     <component :is="currentView" />
@@ -41,8 +45,34 @@ nav {
   width: 100%;
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-around;
+  align-items: stretch;
   background-color: var(--color-secondary);
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+  border-left: 1rem solid var(--color-primary);
+  border-right: 1rem solid var(--color-primary);
+}
+
+nav h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+
+.title {
+  display: flex;
+  background-color: var(--color-primary);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  align-items: center;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
 }
 
 main {
