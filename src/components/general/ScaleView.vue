@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   nextTick,
-  onMounted,
   onUnmounted,
   ref,
   useTemplateRef,
@@ -259,6 +258,13 @@ function applyArrowKeyScroll() {
   }
 }
 
+function cancelScrollAnimation() {
+  if (scrollAnimationFrameId !== null) {
+    cancelAnimationFrame(scrollAnimationFrameId);
+    scrollAnimationFrameId = null;
+  }
+}
+
 function handleWheel(event: WheelEvent) {
   event.preventDefault();
   if (event.deltaY < 0) {
@@ -301,9 +307,8 @@ function handleKeyup(event: KeyboardEvent) {
     case "ArrowLeft":
     case "ArrowRight":
       pressedArrowKeys.delete(event.key);
-      if (pressedArrowKeys.size === 0 && scrollAnimationFrameId !== null) {
-        cancelAnimationFrame(scrollAnimationFrameId);
-        scrollAnimationFrameId = null;
+      if (pressedArrowKeys.size === 0) {
+        cancelScrollAnimation();
       }
       break;
   }
@@ -351,17 +356,13 @@ function handleMouseUp(event: MouseEvent) {
   }
 }
 
-onMounted(() => {
-  window.addEventListener("keydown", handleKeydown);
-  window.addEventListener("keyup", handleKeyup);
-});
+function handleBlur() {
+  pressedArrowKeys.clear();
+  cancelScrollAnimation();
+}
 
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeydown);
-  window.removeEventListener("keyup", handleKeyup);
-  if (scrollAnimationFrameId !== null) {
-    cancelAnimationFrame(scrollAnimationFrameId);
-  }
+  cancelScrollAnimation();
 });
 
 // only creates observer, which fires directly
@@ -376,7 +377,6 @@ watchEffect((onCleanup) => {
   }
 });
 
-// respond to scaling
 watch(() => scaleFactor.value, adjustScrollPositionToScale);
 </script>
 
@@ -403,16 +403,21 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
         :numberOfDigits="numberOfPositionDigits"
       />
     </div>
+    <div class="focus-indicator"></div>
     <div
       ref="overflow-container"
       class="overflow-container"
       :class="{ grabbing: isDragging }"
+      tabindex="0"
       @wheel="handleWheel"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
       @mousemove="handleMouseMove"
       @mousedown="handleMouseDown"
       @mouseup="handleMouseUp"
+      @keydown="handleKeydown"
+      @keyup="handleKeyup"
+      @blur="handleBlur"
     >
       <div
         class="size-container"
@@ -463,6 +468,21 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
 
 .overflow-container.grabbing {
   cursor: grabbing;
+}
+
+.focus-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fixed-view:has(.overflow-container:focus-visible) .focus-indicator {
+  outline: 2px solid var(--color-secondary-highlight);
+  outline-offset: -2px;
 }
 
 .size-container {

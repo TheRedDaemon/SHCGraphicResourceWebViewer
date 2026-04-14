@@ -121,6 +121,16 @@ async function exportFile() {
   }
 }
 
+function handleUploadKeydown(event: KeyboardEvent) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    const fileInput = document.getElementById(
+      "file-upload",
+    ) as HTMLInputElement;
+    fileInput?.click();
+  }
+}
+
 watchEffect((onCleanup) => {
   if (viewWrapper.value) {
     const observer = new ResizeObserver((entries) => {
@@ -143,6 +153,8 @@ watchEffect((onCleanup) => {
         for="file-upload"
         class="file-upload-button"
         :class="{ disabled: isLoading }"
+        tabindex="0"
+        @keydown="handleUploadKeydown"
         >Upload</label
       >
       <input
@@ -159,6 +171,7 @@ watchEffect((onCleanup) => {
       <button
         :disabled="isLoading || isExporting || !imageSize"
         @click="exportFile"
+        tabindex="0"
       >
         Export
       </button>
