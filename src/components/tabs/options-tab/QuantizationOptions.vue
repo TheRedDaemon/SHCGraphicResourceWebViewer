@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SelectInput from "src/components/general/input/SelectInput.vue";
-import * as qo from "src/objects/options/quantization-options";
+import * as qo from "src/options/quantization-options";
 
 const model = defineModel<qo.QuantizationOptions>({
   required: true,

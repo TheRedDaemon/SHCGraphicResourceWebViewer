@@ -1,27 +1,36 @@
 <script setup lang="ts">
 import NumberInput from "src/components/general/input/NumberInput.vue";
-import * as tco from "src/objects/options/tgx-coder-options";
+import * as co from "src/options/coder-options";
 
-const model = defineModel<tco.TgxCoderOptions>({ required: true });
+const model = defineModel<co.CoderOptions>({ required: true });
 </script>
 
 <template>
   <div class="tgx-coder-option">
-    <h3>TGX Coder Options</h3>
+    <h3>Coder Options</h3>
     <NumberInput
-      :min="tco.PIXEL_REPEAT_THRESHOLD_MIN"
-      :max="tco.PIXEL_REPEAT_THRESHOLD_MAX"
-      :defaultValue="tco.PIXEL_REPEAT_THRESHOLD_DEFAULT"
-      label="Pixel Repeat Threshold"
+      :min="co.CODER_WORKERS_MIN"
+      :max="co.CODER_WORKERS_MAX"
+      :defaultValue="co.CODER_WORKERS_DEFAULT"
+      label="Coder Workers"
+      v-model="model.coderWorkers"
+      :integer="true"
+      :step="1"
+    />
+    <NumberInput
+      :min="co.PIXEL_REPEAT_THRESHOLD_MIN"
+      :max="co.PIXEL_REPEAT_THRESHOLD_MAX"
+      :defaultValue="co.PIXEL_REPEAT_THRESHOLD_DEFAULT"
+      label="Tgx Pixel Repeat Threshold"
       v-model="model.pixelRepeatThreshold"
       :integer="true"
       :step="1"
     />
     <NumberInput
-      :min="tco.PADDING_ALIGNMENT_MIN"
-      :max="tco.PADDING_ALIGNMENT_MAX"
-      :defaultValue="tco.PADDING_ALIGNMENT_DEFAULT"
-      label="Padding Alignment"
+      :min="co.PADDING_ALIGNMENT_MIN"
+      :max="co.PADDING_ALIGNMENT_MAX"
+      :defaultValue="co.PADDING_ALIGNMENT_DEFAULT"
+      label="Tgx Padding Alignment"
       v-model="model.paddingAlignment"
       :integer="true"
       :step="1"

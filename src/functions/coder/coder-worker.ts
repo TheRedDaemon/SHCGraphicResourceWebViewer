@@ -6,7 +6,7 @@ import {
   convertArgb1555ToRgba8888,
   reduceColorDepthOfRgba8888ToArgb1555,
 } from "./color-depth-converter";
-import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
+import { type CoderOptions } from "src/options/coder-options";
 
 function decodeTgxData(width: number, height: number, tgxData: DataView) {
   const pixels = decodeTgx(width, height, tgxData);
@@ -17,9 +17,9 @@ function encodeTgxData(
   pixels: Uint16Array,
   width: number,
   height: number,
-  tgxCoderOptions: TgxCoderOptions,
+  coderOptions: CoderOptions,
 ) {
-  const encodedData = encodeTgx(pixels, width, height, tgxCoderOptions);
+  const encodedData = encodeTgx(pixels, width, height, coderOptions);
   postMessage(encodedData, [encodedData.buffer]);
 }
 
@@ -49,7 +49,7 @@ onmessage = function (message) {
         params.pixels,
         params.width,
         params.height,
-        params.tgxCoderOptions,
+        params.coderOptions,
       );
       return;
     case "convert-rgba-to-argb":

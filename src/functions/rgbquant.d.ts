@@ -1,5 +1,5 @@
 declare module "rgbquant" {
-  import { type QuantizationOptions } from "src/objects/options/quantization-options";
+  import { type QuantizationOptions } from "src/options/quantization-options";
 
   type ImagePixelData =
     | HTMLImageElement

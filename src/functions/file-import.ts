@@ -1,5 +1,5 @@
 import { reduceColorDepthOfRgba8888ToArgb1555 } from "src/functions/coder";
-import { type UploadOptions } from "src/objects/options/upload-options";
+import { type UploadOptions } from "src/options/upload-options";
 
 export async function extractImageFromFile(
   file: File,

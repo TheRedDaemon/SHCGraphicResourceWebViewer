@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import type { QuantizationOptions } from "src/objects/options/quantization-options";
+import type { QuantizationOptions } from "src/options/quantization-options";
 import RgbQuant, {
   type ReduceReturnImageData,
   type ReduceReturnImageIndexes,

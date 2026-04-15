@@ -1,8 +1,8 @@
 import { LocalStorageHelper } from "./LocalStorageHelper";
-import { createDefaultQuantizationOptions } from "src/objects/options/quantization-options";
-import { createDefaultTgxCoderOptions } from "src/objects/options/tgx-coder-options";
-import { createDefaultUploadOptions } from "src/objects/options/upload-options";
-import { createDefaultViewOptions } from "src/objects/options/view-options";
+import { createDefaultQuantizationOptions } from "src/options/quantization-options";
+import { createDefaultCoderOptions } from "src/options/coder-options";
+import { createDefaultUploadOptions } from "src/options/upload-options";
+import { createDefaultViewOptions } from "src/options/view-options";
 
 function ensureValidOptions<T extends Record<string, unknown>>(
   key: string,
@@ -46,9 +46,9 @@ export const quantizationOptions = ensureValidOptions(
   createDefaultQuantizationOptions,
 );
 
-export const tgxCoderOptions = ensureValidOptions(
-  "tgxCoderOptions",
-  createDefaultTgxCoderOptions,
+export const coderOptions = ensureValidOptions(
+  "coderOptions",
+  createDefaultCoderOptions,
 );
 
 export const uploadOptions = ensureValidOptions(

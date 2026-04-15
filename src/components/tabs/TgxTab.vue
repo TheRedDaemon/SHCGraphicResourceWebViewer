@@ -3,7 +3,7 @@ import ScaleView from "src/components/general/ScaleView.vue";
 import { extractImageFromFile } from "src/functions/file-import";
 import { loadTgx, createTgx } from "src/functions/tgx-file";
 import { useTemplateRef } from "vue";
-import { uploadOptions, tgxCoderOptions } from "src/storage/option-storage";
+import { uploadOptions, coderOptions } from "src/storage/option-storage";
 import { ref, watchEffect } from "vue";
 
 // TODO?: Sometimes the upload remembers the last folder,
@@ -96,7 +96,7 @@ async function exportFile() {
     }
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const tgxData = await createTgx(imageData, tgxCoderOptions.read());
+    const tgxData = await createTgx(imageData, coderOptions.read());
 
     const blob = new Blob([tgxData as BlobPart], {
       type: "application/octet-stream",

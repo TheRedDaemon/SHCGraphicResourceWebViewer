@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NumberInput from "src/components/general/input/NumberInput.vue";
-import * as uo from "src/objects/options/upload-options";
+import * as uo from "src/options/upload-options";
 
 const model = defineModel<uo.UploadOptions>({
   required: true,

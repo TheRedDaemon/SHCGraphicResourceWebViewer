@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CheckboxInput from "src/components/general/input/CheckboxInput.vue";
-import * as vo from "src/objects/options/view-options";
+import * as vo from "src/options/view-options";
 
 const model = defineModel<vo.ViewOptions>({
   required: true,

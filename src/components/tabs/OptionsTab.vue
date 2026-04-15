@@ -3,16 +3,17 @@ import { ref, watchEffect } from "vue";
 import ViewOptionsComponent from "./options-tab/ViewOptions.vue";
 import UploadOptionsComponent from "./options-tab/UploadOptions.vue";
 import QuantizationOptionsComponent from "./options-tab/QuantizationOptions.vue";
-import TgxCoderOptionsComponent from "./options-tab/TgxCoderOptions.vue";
-import { type ViewOptions } from "src/objects/options/view-options";
-import { type UploadOptions } from "src/objects/options/upload-options";
-import { type QuantizationOptions } from "src/objects/options/quantization-options";
-import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
+import CoderOptionsComponent from "./options-tab/CoderOptions.vue";
+import { type ViewOptions } from "src/options/view-options";
+import { type UploadOptions } from "src/options/upload-options";
+import { type QuantizationOptions } from "src/options/quantization-options";
+import { type CoderOptions } from "src/options/coder-options";
+import { resizeWorker } from "src/functions/coder";
 import {
   viewOptions as viewOptionsStorage,
   uploadOptions as uploadOptionsStorage,
   quantizationOptions as quantizationOptionsStorage,
-  tgxCoderOptions as tgxCoderOptionsStorage,
+  coderOptions as coderOptionsStorage,
 } from "src/storage/option-storage";
 
 const localViewOptions = ref<ViewOptions>(viewOptionsStorage.read());
@@ -20,9 +21,7 @@ const localUploadOptions = ref<UploadOptions>(uploadOptionsStorage.read());
 const localQuantizationOptions = ref<QuantizationOptions>(
   quantizationOptionsStorage.read(),
 );
-const localTgxCoderOptions = ref<TgxCoderOptions>(
-  tgxCoderOptionsStorage.read(),
-);
+const localCoderOptions = ref<CoderOptions>(coderOptionsStorage.read());
 
 const hasChanges = ref(false);
 
@@ -30,7 +29,7 @@ watchEffect(() => {
   const storedViewOptions = viewOptionsStorage.read();
   const storedUploadOptions = uploadOptionsStorage.read();
   const storedQuantizationOptions = quantizationOptionsStorage.read();
-  const storedTgxCoderOptions = tgxCoderOptionsStorage.read();
+  const storedCoderOptions = coderOptionsStorage.read();
 
   hasChanges.value =
     JSON.stringify(localViewOptions.value) !==
@@ -39,15 +38,17 @@ watchEffect(() => {
       JSON.stringify(storedUploadOptions) ||
     JSON.stringify(localQuantizationOptions.value) !==
       JSON.stringify(storedQuantizationOptions) ||
-    JSON.stringify(localTgxCoderOptions.value) !==
-      JSON.stringify(storedTgxCoderOptions);
+    JSON.stringify(localCoderOptions.value) !==
+      JSON.stringify(storedCoderOptions);
 });
 
 function saveAllOptions() {
   viewOptionsStorage.write(localViewOptions.value);
   uploadOptionsStorage.write(localUploadOptions.value);
   quantizationOptionsStorage.write(localQuantizationOptions.value);
-  tgxCoderOptionsStorage.write(localTgxCoderOptions.value);
+  coderOptionsStorage.write(localCoderOptions.value);
+
+  resizeWorker(localCoderOptions.value.coderWorkers);
   hasChanges.value = false;
 }
 
@@ -55,13 +56,14 @@ function resetAllOptions() {
   viewOptionsStorage.reset();
   uploadOptionsStorage.reset();
   quantizationOptionsStorage.reset();
-  tgxCoderOptionsStorage.reset();
+  coderOptionsStorage.reset();
 
   localViewOptions.value = viewOptionsStorage.read();
   localUploadOptions.value = uploadOptionsStorage.read();
   localQuantizationOptions.value = quantizationOptionsStorage.read();
-  localTgxCoderOptions.value = tgxCoderOptionsStorage.read();
+  localCoderOptions.value = coderOptionsStorage.read();
 
+  resizeWorker(localCoderOptions.value.coderWorkers);
   hasChanges.value = false;
 }
 </script>
@@ -72,7 +74,7 @@ function resetAllOptions() {
       <ViewOptionsComponent v-model="localViewOptions" />
       <UploadOptionsComponent v-model="localUploadOptions" />
       <QuantizationOptionsComponent v-model="localQuantizationOptions" />
-      <TgxCoderOptionsComponent v-model="localTgxCoderOptions" />
+      <CoderOptionsComponent v-model="localCoderOptions" />
       <div class="actions">
         <button @click="resetAllOptions">Reset to defaults</button>
         <button :disabled="!hasChanges" @click="saveAllOptions">Save</button>

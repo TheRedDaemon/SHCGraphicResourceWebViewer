@@ -1,4 +1,4 @@
-import { type QuantizationOptions } from "src/objects/options/quantization-options";
+import { type QuantizationOptions } from "src/options/quantization-options";
 
 // check out other library (RGB Quant?), maybe they will be more memory friendly
 

@@ -1,4 +1,4 @@
-import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
+import { type CoderOptions } from "src/options/coder-options";
 
 const Marker = {
   Pixel: 0b000,
@@ -139,20 +139,20 @@ export function encodeTgx(
   pixels: Uint16Array,
   width: number,
   height: number,
-  tgxCoderOptions: TgxCoderOptions,
+  coderOptions: CoderOptions,
 ): Uint8Array {
   let size = 0;
   for (let y = 0; y < height; y++) {
     size += encodeTgxLine(
       pixels.subarray(y * width, (y + 1) * width),
-      tgxCoderOptions,
+      coderOptions,
     );
   }
 
   // Handle padding
-  const remainder = size % tgxCoderOptions.paddingAlignment;
+  const remainder = size % coderOptions.paddingAlignment;
   if (remainder > 0) {
-    size += tgxCoderOptions.paddingAlignment - remainder;
+    size += coderOptions.paddingAlignment - remainder;
   }
   const result = new Uint8Array(size);
 
@@ -160,7 +160,7 @@ export function encodeTgx(
   for (let y = 0; y < height; y++) {
     currentResultIndex += encodeTgxLine(
       pixels.subarray(y * width, (y + 1) * width),
-      tgxCoderOptions,
+      coderOptions,
       new DataView(result.buffer, currentResultIndex),
     );
   }
@@ -178,7 +178,7 @@ export function encodeTgx(
 
 function encodeTgxLine(
   pixels: Uint16Array,
-  tgxCoderOptions: TgxCoderOptions,
+  coderOptions: CoderOptions,
   out?: DataView,
 ): number {
   let targetIndex = 0;
@@ -235,7 +235,7 @@ function encodeTgxLine(
       }
 
       // Check if we should use repeating marker
-      if (localRepeatingCount >= tgxCoderOptions.pixelRepeatThreshold) {
+      if (localRepeatingCount >= coderOptions.pixelRepeatThreshold) {
         repeatingPixel = currentPixel;
         repeatingCount = localRepeatingCount;
         break;

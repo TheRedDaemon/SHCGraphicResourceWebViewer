@@ -4,7 +4,7 @@ import {
   convertArgb1555ToRgba8888,
   convertRgba8888ToArgb1555,
 } from "./coder";
-import { type TgxCoderOptions } from "src/objects/options/tgx-coder-options";
+import { type CoderOptions } from "src/options/coder-options";
 
 interface TgxHeader {
   width: number;
@@ -51,12 +51,12 @@ export async function loadTgx(byteArray: Uint8Array): Promise<ImageData> {
 /**
  * Creates a TGX file from ImageData.
  * @param imageData - The image data to encode. WARNING: Data is consumed by this call.
- * @param tgxCoderOptions - Options for the TGX encoder.
+ * @param coderOptions - Options for the TGX encoder.
  * @returns The encoded TGX file data as a byte array.
  */
 export async function createTgx(
   imageData: ImageData,
-  tgxCoderOptions: TgxCoderOptions,
+  coderOptions: CoderOptions,
 ): Promise<Uint8Array> {
   const argb1555Pixels = await convertRgba8888ToArgb1555(imageData.data);
 
@@ -64,7 +64,7 @@ export async function createTgx(
     argb1555Pixels,
     imageData.width,
     imageData.height,
-    tgxCoderOptions,
+    coderOptions,
   );
 
   // Create the TGX file with header
