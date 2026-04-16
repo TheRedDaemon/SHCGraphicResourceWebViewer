@@ -4,7 +4,7 @@ export type CoderOptions = {
   paddingAlignment: number;
 };
 
-export const CODER_WORKERS_DEFAULT = 2;
+export const CODER_WORKERS_DEFAULT = 1;
 export const CODER_WORKERS_MAX = 16;
 export const CODER_WORKERS_MIN = 1;
 

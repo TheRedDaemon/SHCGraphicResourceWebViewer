@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import TgxTab from "src/components/tabs/TgxTab.vue";
 import OptionsTab from "src/components/tabs/OptionsTab.vue";
+import AboutTab from "src/components/tabs/AboutTab.vue";
 import { ref, computed, type Component } from "vue";
 
 const routes: Record<string, [string, Component | null]> = {
   "#/tgx": ["Tgx", TgxTab],
   "#/options": ["Options", OptionsTab],
-  "#/about": ["About", null],
+  "#/about": ["About", AboutTab],
 };
 const currentPath = ref(window.location.hash);
 
@@ -34,6 +35,14 @@ const currentView = computed(() => {
         {{ value[0] }}
       </a>
     </div>
+    <div class="source-section">
+      <a
+        href="https://github.com/TheRedDaemon/SHCGraphicResourceWebViewer"
+        target="_blank"
+        class="source-link"
+        >Source</a
+      >
+    </div>
   </nav>
   <main>
     <component :is="currentView" />
@@ -51,7 +60,6 @@ nav {
   gap: 1rem;
   margin-top: 1rem;
   margin-bottom: 0;
-  flex-wrap: wrap;
   border-left: 1rem solid var(--color-primary);
   border-right: 1rem solid var(--color-primary);
 }
@@ -68,6 +76,39 @@ nav h1 {
   padding-left: 1rem;
   padding-right: 1rem;
   align-items: center;
+  gap: 1rem;
+}
+
+.source-section {
+  display: flex;
+  background-color: var(--color-primary);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  align-items: center;
+  height: 100%;
+}
+
+.source-link {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: bolder;
+  text-decoration: none;
+  padding: 0.5rem;
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.source-link:hover {
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.source-link:active {
+  background-color: var(--color-secondary-highlight);
+  color: var(--color-primary);
 }
 
 .tabs {
@@ -92,6 +133,9 @@ a {
   color: var(--color-primary);
   font-weight: bolder;
   text-decoration: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 a:hover {
