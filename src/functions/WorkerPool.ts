@@ -16,7 +16,6 @@ export class WorkerPool {
   private workers: WorkerState[] = [];
   private requestQueue: QueueItem[] = [];
   private workerUrl: string | URL;
-  private beforeUnloadHandler: () => void;
   private intendedSize: number;
 
   constructor(workerUrl: string | URL, initialSize: number) {
@@ -25,9 +24,6 @@ export class WorkerPool {
     }
     this.workerUrl = workerUrl;
     this.intendedSize = initialSize;
-
-    this.beforeUnloadHandler = () => this.terminateAll();
-    window.addEventListener("beforeunload", this.beforeUnloadHandler);
 
     this.validatePoolSize();
   }
@@ -61,17 +57,20 @@ export class WorkerPool {
       }
     };
 
-    worker.addEventListener("message", onmessage);
-    worker.addEventListener("error", onerror);
-
+    worker.onmessage = onmessage;
+    worker.onerror = onerror;
     return state;
   }
 
-  private terminateWorker(state: WorkerState): void {
+  private terminateWorker(index: number): void {
+    const state = this.workers[index];
     if (state.isBusy && state.reject) {
       state.reject(new Error("Worker terminated while processing"));
     }
     state.worker.terminate();
+    state.worker.onmessage = null;
+    state.worker.onerror = null;
+    this.workers.splice(index, 1);
   }
 
   private validatePoolSize(): void {
@@ -92,8 +91,7 @@ export class WorkerPool {
         if (this.workers[i].isBusy) {
           continue;
         }
-        this.terminateWorker(this.workers[i]);
-        this.workers.splice(i, 1);
+        this.terminateWorker(i);
         if (this.workers.length <= this.intendedSize) {
           break;
         }
@@ -130,8 +128,23 @@ export class WorkerPool {
     state.worker.postMessage(item.data, item.transfer as Transferable[]);
   }
 
-  async submit<T>(data: unknown, transfer?: Transferable[]): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
+  submit<T>(
+    data: unknown,
+    transfer?: Transferable[],
+    abortable?: false,
+  ): Promise<T>;
+  submit<T>(
+    data: unknown,
+    transfer: Transferable[] | undefined,
+    abortable: true,
+  ): [Promise<T>, AbortController];
+  submit<T>(
+    data: unknown,
+    transfer?: Transferable[],
+    abortable: boolean = false,
+  ): Promise<T> | [Promise<T>, AbortController] {
+    const abortController = new AbortController();
+    const promise = new Promise<T>((resolve, reject) => {
       const item: QueueItem = {
         data,
         transfer,
@@ -139,7 +152,23 @@ export class WorkerPool {
         reject,
       };
       this.process(item);
+
+      if (abortable) {
+        console.log("attached abortable");
+        abortController.signal.addEventListener(
+          "abort",
+          () => {
+            this.abort(reject);
+          },
+          { once: true },
+        );
+      }
     });
+
+    if (abortable) {
+      return [promise, abortController];
+    }
+    return promise;
   }
 
   resize(newSize: number, force: boolean = false): void {
@@ -156,16 +185,44 @@ export class WorkerPool {
       if (this.workers.length <= this.intendedSize) {
         break;
       }
-      this.terminateWorker(this.workers[i]);
-      this.workers.splice(i, 1);
+      this.terminateWorker(i);
     }
   }
 
-  terminateAll(): void {
-    window.removeEventListener("beforeunload", this.beforeUnloadHandler);
-    for (const workerState of this.workers) {
-      this.terminateWorker(workerState);
+  private abort(reject: (reason: Error) => void): void {
+    // Check if item is in queue
+    const queueIndex = this.requestQueue.findIndex(
+      (item) => item.reject === reject,
+    );
+    if (queueIndex !== -1) {
+      const item = this.requestQueue.splice(queueIndex, 1)[0];
+      item.reject(new Error("Canceled processing request"));
+      return;
     }
-    this.workers = [];
+
+    // Check if item is being processed by a worker
+    const workerIndex = this.workers.findIndex(
+      (state) => state.reject === reject,
+    );
+    if (workerIndex !== -1) {
+      this.terminateWorker(workerIndex);
+      this.process();
+      return;
+    }
+
+    reject(new Error("Aborted missing or already completed request"));
+  }
+
+  clear(): void {
+    // Reject all queued items
+    for (const item of this.requestQueue) {
+      item.reject(new Error("Worker pool cleared"));
+    }
+    this.requestQueue = [];
+
+    // Terminate all workers
+    for (let i = this.workers.length - 1; i >= 0; i--) {
+      this.terminateWorker(i);
+    }
   }
 }

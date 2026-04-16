@@ -10,6 +10,7 @@ const workerPool = new WorkerPool(
   new URL("./coder/coder-worker.ts", import.meta.url),
   coderOptionsStorage.read().coderWorkers,
 );
+window.addEventListener("beforeunload", () => workerPool.clear());
 
 function ensureArrayBuffer<
   T extends Uint8Array | Uint16Array | Uint8ClampedArray,
