@@ -1,8 +1,19 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+declare global {
+  interface Window {
+    __APP_VERSION__?: string;
+  }
+}
+
+const appVersion = window.__APP_VERSION__ || "0.0.0";
+</script>
 
 <template>
   <div class="about">
     <div class="content">
+      <div class="version">
+        <p>Version: {{ appVersion }}</p>
+      </div>
       <h2>About SHC Graphic Resource Web Viewer</h2>
 
       <section class="section">
@@ -120,6 +131,17 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.version {
+  text-align: right;
+  margin-bottom: 1rem;
+}
+
+.version p {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-style: italic;
 }
 
 h2 {
