@@ -4,7 +4,7 @@ import { decodeTgx, encodeTgx } from "./tgx-coder";
 import {
   convertRgba8888ToArgb1555,
   convertArgb1555ToRgba8888,
-  reduceColorDepthOfRgba8888ToArgb1555,
+  reduceRgba8888ColorDepthToCrusaderArgb1555,
 } from "./color-depth-converter";
 import { type CoderOptions } from "src/options/coder-options";
 
@@ -34,7 +34,7 @@ function convertArgbToRgba(input: Uint16Array) {
 }
 
 function reduceColorDepth(input: Uint8ClampedArray, alphaThreshold: number) {
-  reduceColorDepthOfRgba8888ToArgb1555(input, alphaThreshold);
+  reduceRgba8888ColorDepthToCrusaderArgb1555(input, alphaThreshold);
   postMessage(input, [input.buffer]);
 }
 

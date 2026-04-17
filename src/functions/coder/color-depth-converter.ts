@@ -1,6 +1,6 @@
 // Source for bit-logic: https://stackoverflow.com/a/71109890
 
-export function reduceColorDepthOfRgba8888ToArgb1555(
+export function reduceRgba8888ColorDepthToCrusaderArgb1555(
   input: Uint8ClampedArray,
   alphaThreshold: number,
 ): void {
@@ -9,15 +9,23 @@ export function reduceColorDepthOfRgba8888ToArgb1555(
   }
 
   for (let i = 0; i < input.length; i += 4) {
-    const r = input[i]! >> 3;
-    const g = input[i + 1]! >> 3;
-    const b = input[i + 2]! >> 3;
     const a = input[i + 3]! > alphaThreshold ? 1 : 0;
 
-    // Expand back to 8-bit with bit replication
-    input[i] = (r << 3) | (r >> 2);
-    input[i + 1] = (g << 3) | (g >> 2);
-    input[i + 2] = (b << 3) | (b >> 2);
+    if (a === 0) {
+      // Transparent pixels: set color to 0,0,0
+      input[i] = 0;
+      input[i + 1] = 0;
+      input[i + 2] = 0;
+    } else {
+      const r = input[i]! >> 3;
+      const g = input[i + 1]! >> 3;
+      const b = input[i + 2]! >> 3;
+
+      // Expand back to 8-bit with bit replication
+      input[i] = (r << 3) | (r >> 2);
+      input[i + 1] = (g << 3) | (g >> 2);
+      input[i + 2] = (b << 3) | (b >> 2);
+    }
     input[i + 3] = a > 0 ? 255 : 0;
   }
 }
