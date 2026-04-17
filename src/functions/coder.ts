@@ -7,7 +7,10 @@ import { WorkerPool } from "./WorkerPool";
 import { coderOptions as coderOptionsStorage } from "src/storage/option-storage";
 
 const workerPool = new WorkerPool(
-  new URL("./coder/coder-worker.ts", import.meta.url),
+  () =>
+    new Worker(new URL("./coder/coder-worker.ts", import.meta.url), {
+      type: "module",
+    }),
   coderOptionsStorage.read().coderWorkers,
 );
 window.addEventListener("beforeunload", () => workerPool.clear());

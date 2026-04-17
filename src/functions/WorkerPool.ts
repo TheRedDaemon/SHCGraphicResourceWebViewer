@@ -12,24 +12,26 @@ interface QueueItem {
   reject: (reason: Error) => void;
 }
 
+type WorkerFactory = () => Worker;
+
 export class WorkerPool {
   private workers: WorkerState[] = [];
   private requestQueue: QueueItem[] = [];
-  private workerUrl: string | URL;
+  private workerFactory: WorkerFactory;
   private intendedSize: number;
 
-  constructor(workerUrl: string | URL, initialSize: number) {
+  constructor(workerFactory: WorkerFactory, initialSize: number) {
     if (initialSize <= 0) {
       throw new Error("Initial size must be a positive number");
     }
-    this.workerUrl = workerUrl;
+    this.workerFactory = workerFactory;
     this.intendedSize = initialSize;
 
     this.validatePoolSize();
   }
 
   private createWorker(): WorkerState {
-    const worker = new Worker(this.workerUrl, { type: "module" });
+    const worker = this.workerFactory();
     const state: WorkerState = {
       worker,
       isBusy: false,
