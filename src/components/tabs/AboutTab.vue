@@ -1,11 +1,5 @@
 <script setup lang="ts">
-declare global {
-  interface Window {
-    __APP_VERSION__?: string;
-  }
-}
-
-const appVersion = window.__APP_VERSION__ || "0.0.0";
+const appVersion = import.meta.env.VITE_APP_VERSION || "0.0.0";
 </script>
 
 <template>

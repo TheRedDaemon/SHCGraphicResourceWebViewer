@@ -10,7 +10,4 @@ export default defineConfig({
       src: "/src",
     },
   },
-  define: {
-    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || "0.0.0"),
-  },
 });
