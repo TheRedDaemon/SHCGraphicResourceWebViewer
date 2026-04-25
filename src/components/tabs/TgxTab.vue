@@ -177,7 +177,10 @@ watchEffect((onCleanup) => {
       </button>
     </div>
     <div class="view-wrapper" ref="view-wrapper">
-      <ScaleView :frameSize="frameSize">
+      <ScaleView
+        :frameSize="frameSize"
+        :contentSize="imageSize || { width: 0, height: 0 }"
+      >
         <canvas
           class="image-canvas hidden"
           ref="image-canvas"

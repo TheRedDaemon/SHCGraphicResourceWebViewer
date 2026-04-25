@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  nextTick,
-  onUnmounted,
-  ref,
-  useTemplateRef,
-  watch,
-  watchEffect,
-} from "vue";
+import { nextTick, onUnmounted, ref, useTemplateRef, watch } from "vue";
 import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
 import PixelIndicator from "./scale-view/PixelIndicator.vue";
 import PositionIndicator from "./scale-view/PositionIndicator.vue";
@@ -16,6 +9,7 @@ type ScrollMode = "set" | "edit";
 
 const props = defineProps<{
   frameSize: { width: number; height: number };
+  contentSize: { width: number; height: number };
 }>();
 
 // Constants
@@ -43,19 +37,17 @@ let scrollStart: { left: number; top: number } | null = null;
 let mousePosition: { x: number; y: number } | null = null;
 
 function updateDimensions() {
-  if (contentRef.value) {
-    containerDimensions.value = {
-      width: contentRef.value.offsetWidth * scaleFactor.value,
-      height: contentRef.value.offsetHeight * scaleFactor.value,
-    };
-  }
+  containerDimensions.value = {
+    width: props.contentSize.width * scaleFactor.value,
+    height: props.contentSize.height * scaleFactor.value,
+  };
 }
 
 function updateNumberOfPositionDigits() {
-  if (!contentRef.value) return;
-  const maxWidth = contentRef.value.offsetWidth;
-  const maxHeight = contentRef.value.offsetHeight;
-  const maxDimension = Math.max(maxWidth, maxHeight);
+  const maxDimension = Math.max(
+    props.contentSize.width,
+    props.contentSize.height,
+  );
   numberOfPositionDigits.value = String(maxDimension).length;
 }
 
@@ -365,18 +357,13 @@ onUnmounted(() => {
   cancelScrollAnimation();
 });
 
-// only creates observer, which fires directly
-watchEffect((onCleanup) => {
-  if (contentRef.value) {
-    const observer = new ResizeObserver(() => {
-      updateDimensions();
-      updateNumberOfPositionDigits();
-    });
-    observer.observe(contentRef.value);
-    onCleanup(() => observer.disconnect());
-  }
-});
-
+watch(
+  () => props.contentSize,
+  () => {
+    updateDimensions();
+    updateNumberOfPositionDigits();
+  },
+);
 watch(() => scaleFactor.value, adjustScrollPositionToScale);
 </script>
 
@@ -429,7 +416,11 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
         <div
           ref="scaled-content"
           class="scaled-content"
-          :style="{ transform: `scale(${scaleFactor})` }"
+          :style="{
+            width: `${props.contentSize.width}px`,
+            height: `${props.contentSize.height}px`,
+            transform: `scale(${scaleFactor})`,
+          }"
         >
           <slot></slot>
         </div>
