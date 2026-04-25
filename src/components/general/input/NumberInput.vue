@@ -5,7 +5,7 @@ import { ref, watch } from "vue";
 interface Props {
   min: number;
   max: number;
-  defaultValue: number;
+  defaultValue?: number;
   label: string;
   integer: boolean;
   step: number;
@@ -37,6 +37,11 @@ watch(model, () => (value.value = model.value));
         )
       "
     />
-    <button @click="value = props.defaultValue">&#8630;</button>
+    <button
+      v-if="props.defaultValue !== undefined"
+      @click="value = props.defaultValue"
+    >
+      &#8630;
+    </button>
   </label>
 </template>

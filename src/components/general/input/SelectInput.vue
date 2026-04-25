@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends string | number | boolean | null">
 interface Props {
-  defaultValue: T;
+  defaultValue?: T;
   label: string;
   options: Record<string, T>;
 }
@@ -22,6 +22,11 @@ const model = defineModel<T>({ required: true });
         {{ key }}
       </option>
     </select>
-    <button @click="model = props.defaultValue">&#8630;</button>
+    <button
+      v-if="props.defaultValue !== undefined"
+      @click="model = props.defaultValue"
+    >
+      &#8630;
+    </button>
   </label>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface Props {
-  defaultValue: boolean;
+  defaultValue?: boolean;
   label: string;
 }
 
@@ -13,6 +13,11 @@ const model = defineModel<boolean>({ required: true });
   <label>
     <span>{{ props.label }}</span>
     <input v-model="model" type="checkbox" />
-    <button @click="model = props.defaultValue">&#8630;</button>
+    <button
+      v-if="props.defaultValue !== undefined"
+      @click="model = props.defaultValue"
+    >
+      &#8630;
+    </button>
   </label>
 </template>

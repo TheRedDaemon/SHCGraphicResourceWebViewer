@@ -5,7 +5,7 @@ import { computed } from "vue";
 interface Props {
   min: number;
   max: number;
-  defaultValue: number;
+  defaultValue?: number;
   label: string;
   integer: boolean;
   step: number;
@@ -34,6 +34,11 @@ const value = computed({
       :step="props.step"
     />
     <span>{{ value }}</span>
-    <button @click="model = props.defaultValue">&#8630;</button>
+    <button
+      v-if="props.defaultValue !== undefined"
+      @click="model = props.defaultValue"
+    >
+      &#8630;
+    </button>
   </label>
 </template>
