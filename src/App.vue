@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import TgxTab from "src/components/tabs/TgxTab.vue";
+import Gm1Tab from "src/components/tabs/Gm1Tab.vue";
 import OptionsTab from "src/components/tabs/OptionsTab.vue";
 import AboutTab from "src/components/tabs/AboutTab.vue";
 import { ref, computed, type Component } from "vue";
 
 const routes: Record<string, [string, Component | null]> = {
   "#/tgx": ["Tgx", TgxTab],
+  "#/gm1": ["Gm1", Gm1Tab],
   "#/options": ["Options", OptionsTab],
   "#/about": ["About", AboutTab],
 };
