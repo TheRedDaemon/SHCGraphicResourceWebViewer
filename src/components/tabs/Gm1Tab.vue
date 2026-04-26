@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { ref, nextTick, type Component } from "vue";
+import { ref, nextTick, type Component, shallowRef } from "vue";
 import {
   Gm1TypeValues,
   loadGm1,
   type Gm1Data,
   type Gm1Type,
-  type TgxConstSizeFormat,
 } from "src/functions/gm1-file";
 import ErrorDialog from "src/components/general/ErrorDialog.vue";
 import SelectInput from "src/components/general/input/SelectInput.vue";
 import TgxConstSizeEditor from "src/components/tabs/gm1-tab/tgx-const-size/Editor.vue";
 import TgxConstSizeCreateForm from "src/components/tabs/gm1-tab/tgx-const-size/CreateForm.vue";
 
-const activeEditor = ref<Component | null>(null);
-const activeCreateForm = ref<Component | null>(null);
+const activeEditor = shallowRef<Component | null>(null);
+const activeCreateForm = shallowRef<Component | null>(null);
 const editorRef = ref<{ receiveData?: (data: unknown) => void } | null>(null);
 const errorMessage = ref<string | null>(null);
 const isLoading = ref(false);
@@ -91,7 +90,7 @@ async function handleCreate(data: unknown) {
     activeEditor.value = editorComponent;
     activeCreateForm.value = null;
     await nextTick();
-    editorRef.value?.receiveData?.(data as TgxConstSizeFormat);
+    editorRef.value?.receiveData?.(data as unknown);
   }
 }
 </script>

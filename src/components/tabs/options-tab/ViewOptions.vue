@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CheckboxInput from "src/components/general/input/CheckboxInput.vue";
+import NumberInput from "src/components/general/input/NumberInput.vue";
 import * as vo from "src/options/view-options";
 
 const model = defineModel<vo.ViewOptions>({
@@ -24,6 +25,15 @@ const model = defineModel<vo.ViewOptions>({
       :defaultValue="vo.SHOW_POSITION_INDICATOR_DEFAULT"
       label="Show Position Indicator"
       v-model="model.showPositionIndicator"
+    />
+    <NumberInput
+      :defaultValue="vo.CANVAS_BORDER_DEFAULT"
+      :min="vo.CANVAS_BORDER_MIN"
+      :max="vo.CANVAS_BORDER_MAX"
+      :integer="true"
+      :step="1"
+      label="Canvas Border"
+      v-model="model.canvasBorder"
     />
   </div>
 </template>

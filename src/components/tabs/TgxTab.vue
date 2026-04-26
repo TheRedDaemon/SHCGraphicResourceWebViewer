@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import ScaleView from "src/components/general/ScaleView.vue";
+import CanvasView from "src/components/general/CanvasView.vue";
 import { extractImageFromFile } from "src/functions/file-import";
 import { loadTgx, createTgx } from "src/functions/tgx-file";
 import { useTemplateRef } from "vue";
 import { uploadOptions, coderOptions } from "src/storage/option-storage";
 import { ref, watchEffect } from "vue";
+import type { CanvasElement } from "src/components/general/CanvasView.vue";
 
 // TODO?: Sometimes the upload remembers the last folder,
 // sometimes not. No idea if there is anything that could be done, though.
@@ -15,8 +16,13 @@ const isExporting = ref(false);
 const imageSize = ref<{ width: number; height: number } | null>(null);
 const errorMessage = ref<string | null>(null);
 
-const imageCanvas = useTemplateRef("image-canvas");
+const canvasViewRef =
+  useTemplateRef<InstanceType<typeof CanvasView>>("canvas-view");
 const viewWrapper = useTemplateRef("view-wrapper");
+
+// Non-reactive image data for CanvasView
+let currentImageData: ImageData | null = null;
+let elements: CanvasElement[] = [];
 
 let errorTimeout: number | null = null;
 
@@ -40,7 +46,7 @@ function setError(message: string) {
 async function uploadFile(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
-  if (file && imageCanvas.value) {
+  if (file) {
     isLoading.value = true;
     clearError();
     try {
@@ -53,27 +59,33 @@ async function uploadFile(event: Event) {
         imageData = await extractImageFromFile(file, uploadOptions.read());
       }
 
-      const canvas = imageCanvas.value;
-      canvas.width = imageData.width;
-      canvas.height = imageData.height;
+      currentImageData = imageData;
 
-      const context = canvas.getContext("2d");
-      if (!context) {
-        throw new Error("Failed to get 2D context");
-      }
-      context.putImageData(imageData, 0, 0);
+      // Create element for CanvasView
+      elements = [
+        {
+          type: "image",
+          x: 0,
+          y: 0,
+          imageData: imageData,
+          hitMode: "pixel",
+        },
+      ];
 
       imageSize.value = {
         width: imageData.width,
         height: imageData.height,
       };
-      canvas.classList.remove("hidden");
+
+      // Trigger render
+      canvasViewRef.value?.requestRender();
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Unknown error occurred",
       );
       imageSize.value = null;
-      imageCanvas.value?.classList.add("hidden");
+      currentImageData = null;
+      elements = [];
     } finally {
       isLoading.value = false;
     }
@@ -81,7 +93,7 @@ async function uploadFile(event: Event) {
 }
 
 async function exportFile() {
-  if (!imageCanvas.value || !imageSize.value) {
+  if (!currentImageData || !imageSize.value) {
     return;
   }
 
@@ -89,14 +101,7 @@ async function exportFile() {
   clearError();
 
   try {
-    const canvas = imageCanvas.value;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw new Error("Failed to get 2D context");
-    }
-
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const tgxData = await createTgx(imageData, coderOptions.read());
+    const tgxData = await createTgx(currentImageData, coderOptions.read());
 
     const blob = new Blob([tgxData as BlobPart], {
       type: "application/octet-stream",
@@ -177,17 +182,12 @@ watchEffect((onCleanup) => {
       </button>
     </div>
     <div class="view-wrapper" ref="view-wrapper">
-      <ScaleView
+      <CanvasView
+        ref="canvas-view"
         :frameSize="frameSize"
         :contentSize="imageSize || { width: 0, height: 0 }"
-      >
-        <canvas
-          class="image-canvas hidden"
-          ref="image-canvas"
-          width="0"
-          height="0"
-        ></canvas>
-      </ScaleView>
+        :elements="elements"
+      />
       <div v-if="isLoading || isExporting" class="spinner-overlay">
         <div class="spinner"></div>
       </div>
@@ -219,10 +219,6 @@ watchEffect((onCleanup) => {
   margin: 1rem;
   overflow: hidden;
   position: relative;
-}
-
-.image-canvas {
-  display: block;
 }
 
 .file-input {

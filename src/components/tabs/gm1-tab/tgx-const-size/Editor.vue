@@ -9,9 +9,10 @@ import {
   watchEffect,
   useTemplateRef,
 } from "vue";
-import ScaleView from "src/components/general/ScaleView.vue";
+import CanvasView from "src/components/general/CanvasView.vue";
 import ImageList from "src/components/general/ImageList.vue";
 import type { TgxConstSizeData } from "src/functions/gm1-file";
+import type { CanvasElement } from "src/components/general/CanvasView.vue";
 
 defineOptions({
   name: "TgxConstSizeEditor",
@@ -23,8 +24,12 @@ const emit = defineEmits<{
 }>();
 
 const data = ref<TgxConstSizeData | null>(null);
-const canvasRefs = ref<HTMLCanvasElement[]>([]);
+const canvasViewRef =
+  useTemplateRef<InstanceType<typeof CanvasView>>("canvas-view");
 const viewWrapper = useTemplateRef("view-wrapper");
+
+// Non-reactive elements for CanvasView
+let elements: CanvasElement[] = [];
 
 onMounted(() => {
   window.addEventListener("init-data", handleInitData);
@@ -37,6 +42,7 @@ onUnmounted(() => {
 function handleInitData(event: Event) {
   const customEvent = event as CustomEvent;
   data.value = customEvent.detail as TgxConstSizeData;
+  updateElements();
 }
 
 function receiveData(newData: TgxConstSizeData) {
@@ -85,37 +91,41 @@ watchEffect((onCleanup) => {
   }
 });
 
-// Watch for data changes to redraw canvases
+// Watch for data changes to update elements
 watch(
   [data, selectedImageIndex],
   async () => {
     if (data.value) {
       await nextTick();
-      drawCanvases();
+      updateElements();
     }
   },
   { deep: true },
 );
 
-function drawCanvases() {
-  if (!data.value) return;
+function updateElements() {
+  if (!data.value) {
+    elements = [];
+    return;
+  }
 
   const currentData = data.value;
+  elements = currentData.images.map((image, index) => {
+    const row = Math.floor(index / currentData.rowLength);
+    const col = index % currentData.rowLength;
+    const x = col * (currentData.width + currentData.spacing);
+    const y = row * (currentData.height + currentData.spacing);
 
-  currentData.images.forEach((image, index) => {
-    const canvas = canvasRefs.value[index];
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Set canvas size to image size
-    canvas.width = image.width;
-    canvas.height = image.height;
-
-    // Draw image data
-    ctx.putImageData(image, 0, 0);
+    return {
+      type: "image" as const,
+      x,
+      y,
+      imageData: image,
+      hitMode: "pixel" as const,
+    };
   });
+
+  canvasViewRef.value?.requestRender();
 }
 
 const imageListItems = computed(() => {
@@ -132,6 +142,7 @@ function handleReorder(fromIndex: number, toIndex: number) {
   const [moved] = newImages.splice(fromIndex, 1);
   newImages.splice(toIndex, 0, moved);
   emit("update", { ...data.value, images: newImages });
+  updateElements();
 }
 
 function handleSelect(index: number) {
@@ -145,6 +156,7 @@ function handleRemove(index: number) {
   if (selectedImageIndex.value === index) {
     selectedImageIndex.value = null;
   }
+  updateElements();
 }
 
 function updateSetting(field: keyof TgxConstSizeData, value: number) {
@@ -158,6 +170,14 @@ function updateFrameSize(field: "width" | "height", value: number) {
     ...data.value,
     [field]: value,
   });
+}
+
+function handleHit(result: { elementIndex: number } | null) {
+  if (result) {
+    selectedImageIndex.value = result.elementIndex;
+  } else {
+    selectedImageIndex.value = null;
+  }
 }
 </script>
 
@@ -264,41 +284,21 @@ function updateFrameSize(field: "width" | "height", value: number) {
       </div>
       <div class="main-view">
         <div class="view-wrapper" ref="view-wrapper">
-          <ScaleView :frameSize="frameSize" :contentSize="contentSize">
-            <template v-if="data">
-              <canvas
-                v-for="(image, index) in data.images"
-                :key="index"
-                :ref="
-                  (el) => {
-                    if (el) canvasRefs[index] = el as HTMLCanvasElement;
-                  }
-                "
-                class="image-canvas"
-                :class="{ selected: selectedImageIndex === index }"
-                :style="{
-                  position: 'absolute',
-                  left: `${
-                    (index % data.rowLength) * (data.width + data.spacing)
-                  }px`,
-                  top: `${
-                    Math.floor(index / data.rowLength) *
-                    (data.height + data.spacing)
-                  }px`,
-                  width: `${image.width}px`,
-                  height: `${image.height}px`,
-                }"
-              ></canvas>
-            </template>
-            <div v-if="selectedImageIndex !== null && data" class="frame-info">
-              <h3>Frame {{ selectedImageIndex + 1 }}</h3>
-              <p>
-                Size: {{ data.images[selectedImageIndex].width }}x{{
-                  data.images[selectedImageIndex].height
-                }}
-              </p>
-            </div>
-          </ScaleView>
+          <CanvasView
+            ref="canvas-view"
+            :frameSize="frameSize"
+            :contentSize="contentSize"
+            :elements="elements"
+            @hit="handleHit"
+          />
+          <div v-if="selectedImageIndex !== null && data" class="frame-info">
+            <h3>Frame {{ selectedImageIndex + 1 }}</h3>
+            <p>
+              Size: {{ data.images[selectedImageIndex].width }}x{{
+                data.images[selectedImageIndex].height
+              }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -405,14 +405,6 @@ function updateFrameSize(field: "width" | "height", value: number) {
   margin: 1rem;
   overflow: hidden;
   position: relative;
-}
-
-.image-canvas {
-  display: block;
-}
-
-.image-canvas.selected {
-  border-color: #ff0000;
 }
 
 .frame-info {

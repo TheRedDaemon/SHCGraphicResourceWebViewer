@@ -1,15 +1,46 @@
 <script setup lang="ts">
-import { nextTick, onUnmounted, ref, useTemplateRef, watch } from "vue";
+import {
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { viewOptions as viewOptionsStorage } from "src/storage/option-storage";
-import PixelIndicator from "./scale-view/PixelIndicator.vue";
-import PositionIndicator from "./scale-view/PositionIndicator.vue";
-import ScaleIndicator from "./scale-view/ScaleIndicator.vue";
+import PixelIndicator from "./canvas-view/PixelIndicator.vue";
+import PositionIndicator from "./canvas-view/PositionIndicator.vue";
+import ScaleIndicator from "./canvas-view/ScaleIndicator.vue";
 
 type ScrollMode = "set" | "edit";
+
+// Element type definitions
+export type HitMode = "off" | "box" | "pixel" | "pixelOrBox";
+
+export interface ImageElement {
+  type: "image";
+  x: number;
+  y: number;
+  imageData: ImageData;
+  hitMode: HitMode;
+}
+
+export type CanvasElement = ImageElement;
+
+export interface HitResult {
+  elementIndex: number;
+  canvasPosition: { x: number; y: number };
+  elementPosition: { x: number; y: number };
+}
 
 const props = defineProps<{
   frameSize: { width: number; height: number };
   contentSize: { width: number; height: number };
+  elements: CanvasElement[];
+}>();
+
+const emit = defineEmits<{
+  hit: [result: HitResult | null];
 }>();
 
 // Constants
@@ -25,21 +56,25 @@ const containerDimensions = ref({ width: 0, height: 0 });
 const numberOfPositionDigits = ref(4);
 
 // Template refs
-const contentRef = useTemplateRef("scaled-content");
+const canvasRef = useTemplateRef<HTMLCanvasElement>("canvas");
 const overflowContainerRef = useTemplateRef("overflow-container");
 
 // Non-reactive internal state
 const viewOptions = viewOptionsStorage.read();
 const pressedArrowKeys = new Set<string>();
 let scrollAnimationFrameId: number | null = null;
+let renderAnimationFrameId: number | null = null;
 let dragStart: { x: number; y: number } | null = null;
 let scrollStart: { left: number; top: number } | null = null;
 let mousePosition: { x: number; y: number } | null = null;
+let isDirty = false;
+let canvasContext: CanvasRenderingContext2D | null = null;
 
 function updateDimensions() {
+  const border = viewOptions.canvasBorder;
   containerDimensions.value = {
-    width: props.contentSize.width * scaleFactor.value,
-    height: props.contentSize.height * scaleFactor.value,
+    width: props.contentSize.width * scaleFactor.value + border * 2,
+    height: props.contentSize.height * scaleFactor.value + border * 2,
   };
 }
 
@@ -51,33 +86,168 @@ function updateNumberOfPositionDigits() {
   numberOfPositionDigits.value = String(maxDimension).length;
 }
 
-function isInsideRect(x: number, y: number, rect: DOMRect) {
+function isInsideRect(
+  x: number,
+  y: number,
+  rect: { left: number; right: number; top: number; bottom: number },
+) {
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
-function extractPixel(event: MouseEvent) {
-  if (!contentRef.value || pressedArrowKeys.size > 0) {
+function render() {
+  if (!canvasRef.value) return;
+
+  if (!canvasContext) {
+    canvasContext = canvasRef.value.getContext("2d");
+    if (!canvasContext) return;
+  }
+
+  const canvas = canvasRef.value;
+  canvas.width = props.contentSize.width;
+  canvas.height = props.contentSize.height;
+
+  canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (const element of props.elements) {
+    if (element.type === "image") {
+      canvasContext.putImageData(element.imageData, element.x, element.y);
+    }
+  }
+
+  isDirty = false;
+}
+
+function scheduleRender() {
+  if (renderAnimationFrameId !== null) {
+    cancelAnimationFrame(renderAnimationFrameId);
+  }
+  renderAnimationFrameId = requestAnimationFrame(() => {
+    render();
+    renderAnimationFrameId = null;
+  });
+}
+
+function requestRender() {
+  if (!isDirty) {
+    isDirty = true;
+    scheduleRender();
+  }
+}
+
+function performHitDetection(x: number, y: number): HitResult | null {
+  // Check elements front to back (reverse array order)
+  let firstTransparentHit: {
+    index: number;
+    elementPos: { x: number; y: number };
+  } | null = null;
+
+  for (let i = props.elements.length - 1; i >= 0; i--) {
+    const element = props.elements[i];
+
+    if (element.hitMode === "off") continue;
+
+    if (element.type === "image") {
+      const elementWidth = element.imageData.width;
+      const elementHeight = element.imageData.height;
+
+      // Check if point is inside element rectangle
+      const elementRect = {
+        left: element.x,
+        right: element.x + elementWidth,
+        top: element.y,
+        bottom: element.y + elementHeight,
+      };
+
+      if (isInsideRect(x, y, elementRect)) {
+        const elementX = x - element.x;
+        const elementY = y - element.y;
+
+        if (element.hitMode === "box") {
+          return {
+            elementIndex: i,
+            canvasPosition: { x, y },
+            elementPosition: { x: elementX, y: elementY },
+          };
+        }
+
+        if (element.hitMode === "pixel" || element.hitMode === "pixelOrBox") {
+          // Check pixel alpha
+          const pixelIndex = (elementY * elementWidth + elementX) * 4;
+          const alpha = element.imageData.data[pixelIndex + 3];
+
+          if (alpha > 0) {
+            return {
+              elementIndex: i,
+              canvasPosition: { x, y },
+              elementPosition: { x: elementX, y: elementY },
+            };
+          } else if (
+            element.hitMode === "pixelOrBox" &&
+            firstTransparentHit === null
+          ) {
+            firstTransparentHit = {
+              index: i,
+              elementPos: { x: elementX, y: elementY },
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // If no opaque pixel found but we have a transparent hit, return it
+  if (firstTransparentHit) {
+    return {
+      elementIndex: firstTransparentHit.index,
+      canvasPosition: { x, y },
+      elementPosition: firstTransparentHit.elementPos,
+    };
+  }
+
+  return null;
+}
+
+function performHitDetectionAndEmit(event: MouseEvent) {
+  if (!canvasRef.value) {
+    emit("hit", null);
+    return;
+  }
+
+  const canvasRect = canvasRef.value.getBoundingClientRect();
+
+  // Check if mouse is inside canvas bounds
+  if (!isInsideRect(event.clientX, event.clientY, canvasRect)) {
+    emit("hit", null);
+    return;
+  }
+
+  // Calculate position relative to the canvas
+  const relativeX = event.clientX - canvasRect.left;
+  const relativeY = event.clientY - canvasRect.top;
+
+  // Convert to actual pixel coordinates
+  const pixelX = Math.floor(relativeX / scaleFactor.value);
+  const pixelY = Math.floor(relativeY / scaleFactor.value);
+
+  const hitResult = performHitDetection(pixelX, pixelY);
+  emit("hit", hitResult);
+}
+
+function extractPositionInformation(event: MouseEvent) {
+  if (!canvasRef.value || pressedArrowKeys.size > 0) {
     pixelData.value = null;
+    pixelPosition.value = null;
     return;
   }
 
-  const contentRect = contentRef.value.getBoundingClientRect();
+  const canvasRect = canvasRef.value.getBoundingClientRect();
 
-  // Check if mouse is inside contentRef bounds (in client space)
-  if (!isInsideRect(event.clientX, event.clientY, contentRect)) {
+  // Check if mouse is inside canvas bounds (in client space)
+  if (!isInsideRect(event.clientX, event.clientY, canvasRect)) {
     pixelData.value = null;
+    pixelPosition.value = null;
     return;
   }
-
-  const target = event.target;
-
-  if (!(target instanceof HTMLCanvasElement)) {
-    pixelData.value = new Uint8ClampedArray([0, 0, 0, 0]);
-    return;
-  }
-
-  // Get canvas bounding box
-  const canvasRect = target.getBoundingClientRect();
 
   // Calculate position relative to the canvas
   const relativeX = event.clientX - canvasRect.left;
@@ -87,14 +257,22 @@ function extractPixel(event: MouseEvent) {
   const pixelX = Math.floor(relativeX / scaleFactor.value);
   const pixelY = Math.floor(relativeY / scaleFactor.value);
 
-  // Extract pixel data from canvas
-  const context = target.getContext("2d");
-  if (!context) {
+  // Update position
+  if (
+    !pixelPosition.value ||
+    pixelPosition.value.x !== pixelX ||
+    pixelPosition.value.y !== pixelY
+  ) {
+    pixelPosition.value = { x: pixelX, y: pixelY };
+  }
+
+  // Extract pixel data from canvas context
+  if (!canvasContext) {
     pixelData.value = new Uint8ClampedArray([0, 0, 0, 0]);
     return;
   }
 
-  const imageData = context.getImageData(pixelX, pixelY, 1, 1);
+  const imageData = canvasContext.getImageData(pixelX, pixelY, 1, 1);
   // Avoid unnecessary re-renders by checking if pixel data actually changed
   const newData = imageData.data;
   if (
@@ -105,39 +283,6 @@ function extractPixel(event: MouseEvent) {
     newData[3] !== pixelData.value[3]
   ) {
     pixelData.value = newData;
-  }
-}
-
-function extractPosition(event: MouseEvent) {
-  if (!contentRef.value || pressedArrowKeys.size > 0) {
-    pixelPosition.value = null;
-    return;
-  }
-
-  // Get contentRef bounding box
-  const contentRect = contentRef.value.getBoundingClientRect();
-
-  // Check if mouse is inside contentRef bounds (in client space)
-  if (!isInsideRect(event.clientX, event.clientY, contentRect)) {
-    pixelPosition.value = null;
-    return;
-  }
-
-  // Calculate position relative to the contentRef
-  const relativeX = event.clientX - contentRect.left;
-  const relativeY = event.clientY - contentRect.top;
-
-  // Convert to actual pixel coordinates by dividing by scale factor
-  const pixelX = Math.floor(relativeX / scaleFactor.value);
-  const pixelY = Math.floor(relativeY / scaleFactor.value);
-
-  // Avoid unnecessary re-renders by checking if position actually changed
-  if (
-    !pixelPosition.value ||
-    pixelPosition.value.x !== pixelX ||
-    pixelPosition.value.y !== pixelY
-  ) {
-    pixelPosition.value = { x: pixelX, y: pixelY };
   }
 }
 
@@ -187,14 +332,13 @@ function modifyScroll(mode: ScrollMode, left?: number, top?: number) {
 }
 
 function adjustScrollPositionToScale(newScale: number, oldScale: number) {
-  if (!overflowContainerRef.value || !contentRef.value) {
-    throw new Error(
-      "Invalid state: overflowContainerRef or contentRef is null",
-    );
+  if (!overflowContainerRef.value || !canvasRef.value) {
+    throw new Error("Invalid state: overflowContainerRef or canvasRef is null");
   }
 
   const containerRect = overflowContainerRef.value.getBoundingClientRect();
-  const contentRect = contentRef.value.getBoundingClientRect();
+  const canvasRect = canvasRef.value.getBoundingClientRect();
+  const border = viewOptions.canvasBorder;
 
   const frameWidth = overflowContainerRef.value.clientWidth;
   const frameHeight = overflowContainerRef.value.clientHeight;
@@ -204,22 +348,30 @@ function adjustScrollPositionToScale(newScale: number, oldScale: number) {
 
   if (mousePosition) {
     // Calculate the content point under the mouse (in original content coordinates)
+    // Account for border offset
     const contentX =
-      (containerRect.left - contentRect.left + mousePosition.x) / oldScale;
+      (containerRect.left - canvasRect.left + mousePosition.x - border) /
+      oldScale;
     const contentY =
-      (containerRect.top - contentRect.top + mousePosition.y) / oldScale;
+      (containerRect.top - canvasRect.top + mousePosition.y - border) /
+      oldScale;
 
     // Calculate new scroll position to keep same content point under mouse
-    newScrollLeft = contentX * newScale - mousePosition.x;
-    newScrollTop = contentY * newScale - mousePosition.y;
+    // Add border back to scroll position
+    newScrollLeft = contentX * newScale - mousePosition.x + border;
+    newScrollTop = contentY * newScale - mousePosition.y + border;
   } else {
     // Center zoom when no mouse position
+    // Account for border offset
     const offsetX =
-      (containerRect.left - contentRect.left + frameWidth / 2) / oldScale;
+      (containerRect.left - canvasRect.left + frameWidth / 2 - border) /
+      oldScale;
     const offsetY =
-      (containerRect.top - contentRect.top + frameHeight / 2) / oldScale;
-    newScrollLeft = offsetX * newScale - frameWidth / 2;
-    newScrollTop = offsetY * newScale - frameHeight / 2;
+      (containerRect.top - canvasRect.top + frameHeight / 2 - border) /
+      oldScale;
+    // Add border back to scroll position
+    newScrollLeft = offsetX * newScale - frameWidth / 2 + border;
+    newScrollTop = offsetY * newScale - frameHeight / 2 + border;
   }
 
   updateDimensions();
@@ -308,8 +460,8 @@ function handleKeyup(event: KeyboardEvent) {
 
 function handleMouseEnter(event: MouseEvent) {
   updateMousePosition(event);
-  extractPixel(event);
-  extractPosition(event);
+  extractPositionInformation(event);
+  performHitDetectionAndEmit(event);
 }
 
 function handleMouseLeave() {
@@ -319,13 +471,14 @@ function handleMouseLeave() {
   mousePosition = null;
   pixelData.value = null;
   pixelPosition.value = null;
+  emit("hit", null);
 }
 
 function handleMouseMove(event: MouseEvent) {
   updateMousePosition(event);
   updateDrag(event);
-  extractPixel(event);
-  extractPosition(event);
+  extractPositionInformation(event);
+  performHitDetectionAndEmit(event);
 }
 
 function handleMouseDown(event: MouseEvent) {
@@ -353,8 +506,17 @@ function handleBlur() {
   cancelScrollAnimation();
 }
 
+onMounted(() => {
+  updateDimensions();
+  updateNumberOfPositionDigits();
+  requestRender();
+});
+
 onUnmounted(() => {
   cancelScrollAnimation();
+  if (renderAnimationFrameId !== null) {
+    cancelAnimationFrame(renderAnimationFrameId);
+  }
 });
 
 watch(
@@ -362,9 +524,14 @@ watch(
   () => {
     updateDimensions();
     updateNumberOfPositionDigits();
+    requestRender();
   },
 );
 watch(() => scaleFactor.value, adjustScrollPositionToScale);
+
+defineExpose({
+  requestRender,
+});
 </script>
 
 <template>
@@ -413,17 +580,15 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
           height: `${containerDimensions.height}px`,
         }"
       >
-        <div
-          ref="scaled-content"
-          class="scaled-content"
+        <canvas
+          ref="canvas"
+          class="canvas-content"
           :style="{
             width: `${props.contentSize.width}px`,
             height: `${props.contentSize.height}px`,
             transform: `scale(${scaleFactor})`,
           }"
-        >
-          <slot></slot>
-        </div>
+        ></canvas>
       </div>
     </div>
   </div>
@@ -483,7 +648,7 @@ watch(() => scaleFactor.value, adjustScrollPositionToScale);
   justify-items: center;
 }
 
-.scaled-content {
+.canvas-content {
   transform-origin: center;
   image-rendering: pixelated;
 }
