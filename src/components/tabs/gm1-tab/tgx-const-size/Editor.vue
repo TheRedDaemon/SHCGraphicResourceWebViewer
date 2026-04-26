@@ -409,8 +409,6 @@ function updateFrameSize(field: "width" | "height", value: number) {
 
 .image-canvas {
   display: block;
-  image-rendering: pixelated;
-  border: 2px solid transparent;
 }
 
 .image-canvas.selected {
